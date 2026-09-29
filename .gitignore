@@ -1,14 +1,23 @@
-format_env_files.py
+# Python bytecode and test artifacts
 __pycache__/
 *.py[cod]
 .pytest_cache/
+
+# Packaging and build outputs
 *.egg-info/
 build/
 dist/
+
+# Virtual environments
 .venv/
+
+# Environment files
 .env
 .env.*
 !.env.example
 !.env.template
 !.env.*.example
 !.env.*.template
+
+# Project-generated files
+skills-lock.json
