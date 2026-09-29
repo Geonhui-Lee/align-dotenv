@@ -28,6 +28,8 @@ uv tool install .
 
 ## Use
 
+### Explicit single-file mode
+
 ```bash
 align-dotenv .env --template .env.example
 align-dotenv .env --template .env.example --check
@@ -35,6 +37,46 @@ align-dotenv .env --template .env.example --unknown keep    # default
 align-dotenv .env --template .env.example --unknown remove  # explicitly drop unknown keys
 align-dotenv .env --template .env.example --unknown error   # fail, listing key names only
 ```
+
+### Project mode
+
+Run without a target or template from the project root (the current working directory):
+
+```bash
+align-dotenv
+align-dotenv --check
+align-dotenv --unknown keep    # default
+align-dotenv --unknown remove
+align-dotenv --unknown error
+```
+
+Project mode recursively discovers `.env*.example` and `.env*.template` files and
+removes the suffix to find the corresponding local target. For example:
+
+```text
+project/
+├── .env                    ← .env.example
+├── .env.example
+└── apps/api/
+    ├── .env.development    ← .env.development.template
+    └── .env.development.template
+```
+
+Only existing targets are aligned; templates with missing targets are skipped and
+reported, never used to create targets. If two templates map to the same target
+(such as `.env.example` and `.env.template`), the command fails without writing.
+Discovery is sorted by target path and skips `.git`, `node_modules`, `.venv`,
+`venv`, and `__pycache__` directories, as well as directory symlinks. Project
+mode validates and reconciles every pair in memory **before writing any target**;
+an invalid pair or `--unknown error` failure prevents all writes. After a
+successful preflight, changed files are replaced atomically one at a time (not
+as a cross-file transaction). Unchanged files are not rewritten.
+
+`--check` performs the same full preflight without writing: exit 0 means all
+existing targets are aligned, 1 means at least one needs alignment, and 2 means
+an invalid project state (including ambiguous mappings or unsupported syntax).
+
+### Reconciliation
 
 For example, with `.env.example`:
 
