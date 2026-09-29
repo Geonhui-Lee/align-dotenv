@@ -21,11 +21,12 @@
 - Apply the same validation under `--check` and every unknown-key policy; never print values.
 - Allow local blank lines and ordinary comments to follow the template layout.
 
-## Phase 3 — Distribution and OSS readiness
+## Phase 3 — Distribution and OSS readiness (release-ready, not released)
 
-- Prepare and verify PyPI releases and `uv tool install align-dotenv` / `pipx install align-dotenv`.
-- Expand the README; add LICENSE, CONTRIBUTING, GitHub Actions, and versioning/release workflow.
-- Polish CLI help and output.
+- Validate metadata, wheel/sdist, and isolated installation; document PyPI/uv/pipx installation.
+- Add README, MIT LICENSE, CONTRIBUTING, CI, and an explicit-release-only Trusted Publishing workflow.
+- Keep version `0.1.0` in `pyproject.toml`; polish CLI help/output later if needed.
+- **Not done:** create a GitHub release or publish to PyPI. Configure a PyPI Trusted Publisher first.
 
 ## Phase 4 — Extended functionality (reassess after earlier phases)
 

@@ -1,15 +1,40 @@
 [build-system]
-requires = ["setuptools>=61"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "align-dotenv"
 version = "0.1.0"
-description = "Align local dotenv files with templates while preserving existing values"
-requires-python = ">=3.10"
+description = "Align local dotenv files with their templates while preserving existing values."
+readme = "README.md"
+requires-python = ">=3.10,<3.15"
+license = "MIT"
+authors = [{name = "Geonhui Lee"}]
+keywords = ["dotenv", "env", "cli", "template", "configuration"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Software Development :: Build Tools",
+]
+
+[project.urls]
+Homepage = "https://github.com/Geonhui-Lee/align-dotenv"
+Repository = "https://github.com/Geonhui-Lee/align-dotenv"
+Issues = "https://github.com/Geonhui-Lee/align-dotenv/issues"
 
 [project.scripts]
 align-dotenv = "align_dotenv.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools]
+include-package-data = false
