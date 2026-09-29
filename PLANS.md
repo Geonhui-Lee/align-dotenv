@@ -7,11 +7,13 @@
 - Keep local raw values and unknown variables; use the template's layout and atomic file replacement.
 - Add baseline unit and CLI tests without external runtime dependencies.
 
-## Phase 2 — Correctness and CLI safety
+## Phase 2 — Correctness and CLI safety (implemented)
 
-- Expand fixtures for supported dotenv syntax, CRLF, duplicate keys, and missing final newlines.
-- Review file permissions, error handling, non-interactive behavior, and idempotency across platforms.
-- Consider explicit policies for unknown variables rather than removing them implicitly.
+- Expand fixtures for raw values, Unicode, empty values, LF/CRLF, duplicate keys, and final newlines.
+- Add explicit `keep` (default), `remove`, and `error` policies for unknown assignments.
+- Add non-writing `--check`, validate file paths, and keep user errors and output value-free.
+- Test atomic failure cleanup, permissions, unchanged files, and idempotency.
+- Document the narrow syntax scope and template-controlled line endings.
 
 ## Phase 3 — Distribution and OSS readiness
 
@@ -21,5 +23,5 @@
 
 ## Phase 4 — Extended functionality (reassess after earlier phases)
 
-- Consider `sync`, `check`, and `diff` commands, project-wide template discovery, configuration,
-  CI-friendly checking, value-redacted structural diffs, and `keep`/`remove`/`ask` policies.
+- Consider `sync` and `diff` commands, project-wide template discovery, configuration,
+  value-redacted structural diffs, and interactive `ask` policy.

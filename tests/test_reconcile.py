@@ -1,7 +1,7 @@
 import unittest
 
 from align_dotenv.parser import assignment_from_line, assignments
-from align_dotenv.reconcile import align
+from align_dotenv.reconcile import UnknownKeysError, align, reconcile
 
 
 class ReconcileTests(unittest.TestCase):
@@ -50,6 +50,64 @@ class ReconcileTests(unittest.TestCase):
     def test_template_crlf_is_not_changed(self):
         self.assertEqual(align("# Head\r\nKEY=default\r\n", "KEY=kept\n"),
                          "# Head\r\nKEY=kept\r\n")
+
+    def test_line_endings_follow_template_for_known_keys(self):
+        for ending in ("\n", "\r\n"):
+            template = f"# Comment{ending}A=default{ending}"
+            local = "A=secret\r\n" if ending == "\n" else "A=secret\n"
+            expected = f"# Comment{ending}A=secret{ending}"
+            self.assertEqual(align(template, local), expected)
+            self.assertEqual(align(template, expected), expected)
+
+    def test_final_newline_follows_template(self):
+        for template in ("A=default", "A=default\n", "A=default\r\n"):
+            for local in ("A=1", "A=1\n", "A=1\r\n"):
+                result = align(template, local)
+                self.assertEqual(result, template.replace("default", "1"))
+                self.assertEqual(align(template, result), result)
+
+    def test_empty_values_and_raw_special_characters(self):
+        template = "EMPTY=x\nexport EXPORTED=x\nHASH=x\nEQUALS=x\nURL=x\nSPACES=x\nQUOTED=x\n"
+        local = ('EMPTY=\nexport EXPORTED=\nHASH="abc # def"\nEQUALS=a=b=c\n'
+                 "URL=https://example.com?a=b&c=d\nSPACES='hello world'\nQUOTED=\"\"\n")
+        self.assertEqual(align(template, local), local)
+
+    def test_unicode_comments_and_values(self):
+        template = '# 데이터베이스 설정\nMESSAGE=default\nEMOJI=default\n'
+        local = 'EMOJI="🚀"\nMESSAGE="안녕하세요"\n'
+        result = '# 데이터베이스 설정\nMESSAGE="안녕하세요"\nEMOJI="🚀"\n'
+        self.assertEqual(align(template, local), result)
+
+    def test_export_and_comment_state_transitions(self):
+        self.assertEqual(align("# FEATURE=true\n", "FEATURE=false\n"), "FEATURE=false\n")
+        self.assertEqual(align("FEATURE=true\n", "# FEATURE=false\n"), "# FEATURE=false\n")
+        self.assertEqual(align("# export OPTIONAL=default\nexport API_KEY=default\n",
+                               "export OPTIONAL=private\n# export API_KEY=private\n"),
+                         "export OPTIONAL=private\n# export API_KEY=private\n")
+
+    def test_duplicate_keys_choose_final_value_and_state(self):
+        template = "TOKEN=default\n"
+        for local, expected in (("TOKEN=old\nTOKEN=new\n", "TOKEN=new\n"),
+                                ("TOKEN=old\n# TOKEN=new\n", "# TOKEN=new\n")):
+            self.assertEqual(align(template, local), expected)
+            self.assertEqual(align(template, expected), expected)
+
+    def test_unknown_policies_only_use_names_for_error(self):
+        template = "KNOWN=default\n"
+        local = "Z=secret-z\nKNOWN=secret-k\n# A=secret-a\n"
+        self.assertEqual(align(template, local),
+                         "KNOWN=secret-k\n\nZ=secret-z\n# A=secret-a\n")
+        self.assertEqual(align(template, local, "remove"), "KNOWN=secret-k\n")
+        result = reconcile(template, local)
+        self.assertEqual(result.unknown_keys, ("A", "Z"))
+        with self.assertRaises(UnknownKeysError) as caught:
+            reconcile(template, local, "error")
+        self.assertEqual(caught.exception.keys, ("A", "Z"))
+        self.assertNotIn("secret", str(caught.exception))
+
+    def test_unknown_policy_rejects_invalid_input(self):
+        with self.assertRaises(ValueError):
+            align("A=default\n", "A=local\n", "invalid")
 
 
 if __name__ == "__main__":
