@@ -19,10 +19,15 @@ logs, or issue reports, and do not print dotenv values in errors.
 
 ## Release (maintainers)
 
-The version lives only in `pyproject.toml` (semantic versioning). Before the first
-release, configure a PyPI Trusted Publisher for the GitHub repository
-`Geonhui-Lee/align-dotenv`, workflow `publish.yml`, environment `pypi`; create the
-matching `pypi` GitHub environment. CI must pass first. Publishing requires an
-explicit GitHub release on a matching version tag such as `v0.1.0`; ordinary pushes
-do not publish. Creating the GitHub release and publishing to PyPI are separate
-milestones from having release-ready files in the repository.
+The version lives only in `pyproject.toml` (semantic versioning). To release `v0.1.0`:
+
+1. Ensure CI is green on the release commit.
+2. Create the GitHub environment named exactly `pypi`.
+3. Configure a PyPI Trusted Publisher: owner `Geonhui-Lee`, repository
+   `align-dotenv`, workflow `publish.yml`, environment `pypi`.
+4. Create a GitHub release tagged `v0.1.0` at that commit. Publishing runs only
+   for an explicit GitHub release with a tag matching `pyproject.toml`; ordinary
+   pushes do not publish.
+5. Wait for the publish workflow to succeed, then verify installation from PyPI.
+6. Only after both the GitHub release and PyPI publication succeed, update
+   `.agents/PLANS.md` to mark Phase 3 released.

@@ -26,7 +26,9 @@
 - Validate metadata, wheel/sdist, and isolated installation; document PyPI/uv/pipx installation.
 - Add README, MIT LICENSE, CONTRIBUTING, CI, and an explicit-release-only Trusted Publishing workflow.
 - Keep version `0.1.0` in `pyproject.toml`; polish CLI help/output later if needed.
-- **Not done:** create a GitHub release or publish to PyPI. Configure a PyPI Trusted Publisher first.
+- **Release-ready:** repository and local distribution checks complete.
+- **GitHub release:** not created. Configure the GitHub `pypi` environment and PyPI Trusted Publisher first.
+- **PyPI publication:** not published. Mark this phase released only after publishing succeeds.
 
 ## Phase 4 — Extended functionality (reassess after earlier phases)
 

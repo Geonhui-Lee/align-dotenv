@@ -8,7 +8,7 @@ are kept by default. Unsupported local syntax causes a safe failure, not data lo
 
 ## Install
 
-Python 3.10–3.14 is supported. Once published to PyPI:
+Python 3.10–3.14 is supported.
 
 ```bash
 uv tool install align-dotenv
@@ -18,8 +18,13 @@ pipx install align-dotenv
 python -m pip install align-dotenv
 ```
 
-These PyPI commands require the first release to be published; until then, install
-from this checkout with `python -m pip install .` or `uv tool install .`.
+For development from a checkout:
+
+```bash
+python -m pip install .
+# or
+uv tool install .
+```
 
 ## Use
 
@@ -84,4 +89,4 @@ PYTHONPATH=src python -m unittest discover -s tests -v
 python -m compileall -q src tests
 ```
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) and [PLANS.md](PLANS.md).
+See [CONTRIBUTING.md](CONTRIBUTING.md) for contributor guidance.
