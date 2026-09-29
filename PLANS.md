@@ -15,6 +15,12 @@
 - Test atomic failure cleanup, permissions, unchanged files, and idempotency.
 - Document the narrow syntax scope and template-controlled line endings.
 
+## Phase 2.5 — Local syntax safety (implemented)
+
+- Refuse to align unsupported meaningful local lines and multiline-looking quoted values.
+- Apply the same validation under `--check` and every unknown-key policy; never print values.
+- Allow local blank lines and ordinary comments to follow the template layout.
+
 ## Phase 3 — Distribution and OSS readiness
 
 - Prepare and verify PyPI releases and `uv tool install align-dotenv` / `pipx install align-dotenv`.

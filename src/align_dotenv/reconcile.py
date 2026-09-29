@@ -4,7 +4,8 @@ import re
 from dataclasses import dataclass
 from typing import Literal
 
-from .parser import ACTIVE_ASSIGNMENT, COMMENTED_ASSIGNMENT, assignment_from_line, assignments
+from .parser import (ACTIVE_ASSIGNMENT, COMMENTED_ASSIGNMENT, assignment_from_line,
+                     assignments, physical_lines, validate_local_lines)
 
 UnknownPolicy = Literal["keep", "remove", "error"]
 
@@ -33,8 +34,10 @@ def reconcile(
     """Render local values into the template under an explicit unknown-key policy."""
     if unknown not in ("keep", "remove", "error"):
         raise ValueError("unknown policy must be keep, remove, or error")
-    template_lines = template_text.splitlines(keepends=True)
-    current = assignments(current_text.splitlines(keepends=True))
+    template_lines = physical_lines(template_text)
+    local_lines = physical_lines(current_text)
+    validate_local_lines(local_lines)
+    current = assignments(local_lines)
     template_keys = set(assignments(template_lines))
     unknown_keys = tuple(sorted(key for key in current if key not in template_keys))
     if unknown == "error" and unknown_keys:

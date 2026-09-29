@@ -187,6 +187,36 @@ class FileTests(unittest.TestCase):
                 align_file(path, path)
             self.assertEqual(path.read_text(encoding="utf-8"), "KEY=secret\n")
 
+    def test_unsupported_local_syntax_never_writes_or_leaks_values(self):
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory) / ".env"
+            template = Path(directory) / "template"
+            template.write_bytes(b"KNOWN=default\n")
+            samples = (
+                (b"KNOWN=private-secret\nsource .env.shared\nEXTRA=unknown-secret\n", "2"),
+                (b"KNOWN=private-secret\n. .env.shared\n", "2"),
+                (b'CERT="private-secret\nmore-secret\n"\nKNOWN=private-secret\n', "1, 2, 3"),
+                (b"CERT='private-secret\nmore-secret'\nKNOWN=private-secret\n", "1, 2"),
+            )
+            for original, lines in samples:
+                for policy in ("keep", "remove", "error"):
+                    for check in (False, True):
+                        with self.subTest(lines=lines, policy=policy, check=check):
+                            target.write_bytes(original)
+                            target.chmod(0o600)
+                            inode = target.stat().st_ino
+                            options = ("--unknown", policy) + (("--check",) if check else ())
+                            result = run_cli(target, template, *options)
+                            self.assertEqual(result.returncode, 2)
+                            self.assertEqual(result.stdout, "")
+                            self.assertIn("unsupported local syntax", result.stderr)
+                            self.assertIn(lines, result.stderr)
+                            self.assertNotIn("secret", result.stderr)
+                            self.assertNotIn(".env.shared", result.stderr)
+                            self.assertEqual(target.read_bytes(), original)
+                            self.assertEqual(target.stat().st_ino, inode)
+                            self.assertEqual(stat.S_IMODE(target.stat().st_mode), 0o600)
+
 
 if __name__ == "__main__":
     unittest.main()

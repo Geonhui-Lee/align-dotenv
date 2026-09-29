@@ -30,11 +30,13 @@ access to the target directory; symbolic-link targets are rejected.
 
 The parser supports single-line `KEY=value`, `export KEY=value`, `# KEY=value`, and
 `# export KEY=value` assignments with names matching `[A-Za-z_][A-Za-z0-9_]*`.
-It is not a full shell/dotenv parser: multiline values and other syntax are not
-interpreted as assignments. Unrecognized template lines pass through unchanged.
-Non-assignment lines unique to the local file are **not retained**; back up files
-containing unsupported local syntax before alignment. For repeated keys, the last
-assignment supplies the value and active/commented state.
+It is not a full shell/dotenv parser. **If it detects local syntax it cannot safely
+reconcile, it refuses to modify the file** (including under `--check` or
+`--unknown remove`). Shell directives, dangling quoted values, and line continuations
+are examples. Errors give line numbers, never offending lines or values. Local blank
+lines and ordinary comments are harmless but follow the template layout, so they may
+be omitted. Unrecognized template lines pass through unchanged. For repeated keys,
+the last assignment supplies the value and active/commented state.
 
 Development (Python 3.10+; no runtime dependencies):
 

@@ -1,6 +1,6 @@
 import unittest
 
-from align_dotenv.parser import assignment_from_line, assignments
+from align_dotenv.parser import UnsupportedLocalSyntaxError, assignment_from_line, assignments
 from align_dotenv.reconcile import UnknownKeysError, align, reconcile
 
 
@@ -108,6 +108,35 @@ class ReconcileTests(unittest.TestCase):
     def test_unknown_policy_rejects_invalid_input(self):
         with self.assertRaises(ValueError):
             align("A=default\n", "A=local\n", "invalid")
+
+    def test_local_comments_and_blank_lines_can_follow_template(self):
+        self.assertEqual(align("# Canonical\nA=default\n", "# Local note\n  # explanation\n\nA=kept\n"),
+                         "# Canonical\nA=kept\n")
+
+    def test_directives_and_multiline_values_fail_before_unknown_policy(self):
+        samples = (
+            ("A=kept\nsource .env.shared\n", (2,)),
+            ("A=kept\n. .env.shared\n", (2,)),
+            ('CERT="-----BEGIN-----\nabc\n-----END-----"\nA=kept\n', (1, 2, 3)),
+            ("CERT='first line\nsecond line'\nA=kept\n", (1, 2)),
+            ("A=one\\\nB=two\n", (1,)),
+        )
+        for local, numbers in samples:
+            for policy in ("keep", "remove", "error"):
+                with self.subTest(local=local, policy=policy):
+                    with self.assertRaises(UnsupportedLocalSyntaxError) as caught:
+                        align("A=default\n", local, policy)
+                    self.assertEqual(caught.exception.lines, numbers)
+                    self.assertNotIn("kept", str(caught.exception))
+
+    def test_closed_quotes_and_escaped_quote_remain_supported(self):
+        template = "A=default\nB=default\nC=default\n"
+        local = 'A="hello \\"world\\""\nB=\'hello world\'\nC=one\\\\\n'
+        self.assertEqual(align(template, local), local)
+
+    def test_unicode_line_separator_is_preserved_in_raw_value(self):
+        local = "A=one\u2028two\n"
+        self.assertEqual(align("A=default\n", local), local)
 
 
 if __name__ == "__main__":

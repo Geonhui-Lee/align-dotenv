@@ -4,6 +4,7 @@ import argparse
 from pathlib import Path
 
 from .files import FileValidationError, align_file
+from .parser import UnsupportedLocalSyntaxError
 from .reconcile import UnknownKeysError
 
 
@@ -18,7 +19,7 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         changed = align_file(args.target, args.template, unknown=args.unknown, check=args.check)
-    except (FileValidationError, UnknownKeysError) as error:
+    except (FileValidationError, UnknownKeysError, UnsupportedLocalSyntaxError) as error:
         parser.exit(2, f"align-dotenv: {error}\n")
     except UnicodeError:
         parser.exit(2, "align-dotenv: files must contain UTF-8 text.\n")
