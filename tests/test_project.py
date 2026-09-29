@@ -188,9 +188,23 @@ class ProjectTests(unittest.TestCase):
 
     def test_empty_project_is_aligned(self):
         with tempfile.TemporaryDirectory() as directory:
-            response = run_project(directory, "--check")
-            self.assertEqual(response.returncode, 0)
-            self.assertIn("All 0 dotenv files are aligned", response.stdout)
+            for options in ((), ("--check",)):
+                response = run_project(directory, *options)
+                self.assertEqual(response.returncode, 0)
+                self.assertEqual(response.stdout, "All 0 dotenv files are aligned.\n")
+
+    def test_already_aligned_file_count_grammar(self):
+        for count, expected in ((1, "1 dotenv file is aligned.\n"),
+                                (2, "All 2 dotenv files are aligned.\n")):
+            with self.subTest(count=count), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                for index in range(count):
+                    pair(root, f"app{index}/.env", local=b"# Heading\nKEY=private-secret\n")
+                for options in ((), ("--check",)):
+                    response = run_project(root, *options)
+                    self.assertEqual(response.returncode, 0)
+                    self.assertEqual(response.stdout, expected)
+                    self.assertNotIn("private-secret", response.stdout + response.stderr)
 
     def test_discovered_template_cannot_be_another_pairs_target(self):
         with tempfile.TemporaryDirectory() as directory:

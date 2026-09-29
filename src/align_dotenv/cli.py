@@ -37,12 +37,13 @@ def main(argv: list[str] | None = None) -> int:
         count = len(plan.pairs)
         changes = len(plan.updates)
         noun = "dotenv file" if changes == 1 else "dotenv files"
+        aligned = "1 dotenv file is aligned." if count == 1 else f"All {count} dotenv files are aligned."
         if args.check:
             print(f"{changes} {noun} {'needs' if changes == 1 else 'need'} alignment." if changes else
-                  f"All {count} dotenv files are aligned.")
+                  aligned)
         else:
             print(f"Aligned {changes} {noun}." if changes else
-                  f"All {count} dotenv files are aligned.")
+                  aligned)
         if plan.skipped:
             if plan.skipped == 1:
                 print("Skipped 1 template because its target does not exist.")
