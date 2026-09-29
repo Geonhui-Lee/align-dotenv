@@ -30,14 +30,27 @@
 - **GitHub release:** [v0.1.0](https://github.com/Geonhui-Lee/align-dotenv/releases/tag/v0.1.0) published.
 - **PyPI publication:** [align-dotenv 0.1.0](https://pypi.org/project/align-dotenv/0.1.0/) published through Trusted Publishing; public-index installation and CLI smoke test passed.
 
-## Phase 4 — Project-wide discovery (v0.2.0 in development)
+## Phase 4 — Project-wide discovery (released as v0.2.0)
 
 - Discover `.env*.example` and `.env*.template` recursively with conventional directory exclusions.
 - Align existing targets only; fail on ambiguous mappings and preflight every pair before writing.
 - Support project-wide `--check` and unknown-key policies without changing single-file behavior.
-- Set the development package version to `0.2.0`; do not tag or publish until release preparation.
+- **GitHub release:** [v0.2.0](https://github.com/Geonhui-Lee/align-dotenv/releases/tag/v0.2.0) published.
+- **PyPI publication:** [align-dotenv 0.2.0](https://pypi.org/project/align-dotenv/0.2.0/) published through Trusted Publishing; public-index installation and both CLI modes passed smoke tests.
 
 ## Later ideas (not part of v0.2.0)
 
-- Value-redacted `--diff`, configuration, custom discovery rules, creation of missing
-  targets, and interactive behavior.
+### Likely next
+
+- Value-redacted `--diff`.
+- Better project-mode diagnostics and summaries.
+
+### Future configurability
+
+- Configuration file support.
+- Custom discovery rules, ignored paths/directories, and template suffixes.
+
+### Future target management
+
+- Creation of missing dotenv targets and explicit opt-in initialization behavior.
+- Interactive behavior.
