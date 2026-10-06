@@ -1,5 +1,20 @@
 # Contributing
 
+## v0.4.0 release candidate
+
+The active distribution version is 0.4.0; v0.3.x sections below are historical.
+See [release preparation](.agents/RELEASE_V040.md) for exact artifact selection,
+three-package npm ordering, immutable partial-publication recovery and external
+requirements. Both publishers consume artifacts from successful exact-commit CI
+runs without rebuilding. They require explicit `ENABLE_V040_RELEASE=true` and
+confirmed `release-policy.json` approvals, in addition to existing npm opt-in and
+the protected `npm`/`pypi` environments. Ordinary pushes cannot publish.
+
+`THIRD_PARTY_NOTICES.md` is currently an incomplete licensing inventory; binary
+redistribution remains blocked until it is completed and reviewed. npm platform
+tarballs carry this draft, adding one explicit allowlisted file; main remains the
+three-file launcher package. No release, tag or publication is authorized here.
+
 ## Unreleased executable-backed npm migration
 
 `src/align_dotenv/` is canonical. `node/npm/` defines the thin launcher and two
@@ -55,7 +70,8 @@ generated in owned temporary directories, cleaned afterward and ignored by git.
 Native npm CI covers Ubuntu 24.04 x64 and Windows Server 2022 x64 on Node 22/24/26.
 WSL ARM64 cannot prove either x64 artifact. Keep the package-local MIT license
 equal to the root LICENSE. The main tarball contains only package.json, LICENSE
-and bin/align-dotenv.js; each platform tarball adds metadata.json and one binary.
+and bin/align-dotenv.js; each platform tarball includes metadata.json, one binary
+and THIRD_PARTY_NOTICES.md alongside its manifest and MIT license.
 Sources/tests/shared fixtures/planning files must stay out of the tarballs.
 
 ## Synchronized releases (maintainers)
@@ -99,7 +115,7 @@ Phase 3 is not publication authorization.
 Published npm versions are immutable. The Node port and published-state root
 README have since been merged into `develop`.
 
-The current procedure uses one explicitly published GitHub Release to trigger
+The historical procedure used one explicitly published GitHub Release to trigger
 both `publish.yml` (PyPI Trusted Publishing, environment `pypi`) and
 `publish-npm.yml` (npm Trusted Publishing with provenance, environment `npm`).
 Ordinary pushes cannot publish. Do not manually upload distributions or add

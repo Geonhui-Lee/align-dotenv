@@ -8,13 +8,11 @@ are kept by default. Unsupported local syntax causes a safe failure, not data lo
 
 ## Install
 
-> **Unreleased v0.4.0 direction:** Python is the single behavioral
-> implementation. Development npm packages delegate to packaged executables
-> without requiring Python, initially Linux x86_64 (Ubuntu 24.04) and Windows
-> x86_64 (Server 2022). macOS/ARM and older glibc/musl support are not claimed.
-> The development tree no longer contains the native TypeScript implementation.
-> Released v0.3.1 npm is unchanged. Composer is future work.
-> See [migration notes](.agents/NPM_EXECUTABLE.md).
+> **v0.4.0 release candidate — not yet published.** Python is the single
+> behavioral implementation. npm distributes the canonical standalone executable
+> through a thin launcher and optional x64 platform packages; users do not install
+> Python. The native TypeScript implementation has been retired. Published v0.3.1
+> remains unchanged. Release prerequisites are tracked in [release notes](.agents/RELEASE_V040.md).
 
 Packages: [npm](https://www.npmjs.com/package/align-dotenv) · [PyPI](https://pypi.org/project/align-dotenv/).
 
@@ -22,9 +20,10 @@ Packages: [npm](https://www.npmjs.com/package/align-dotenv) · [PyPI](https://py
 Both distributions expose the same CLI behavior. The npm package is intended as a
 development-time CLI; a stable JavaScript library API is not currently promised.
 
-### Node.js / npm
+### npm / Node ecosystem
 
-Node.js 22+ is supported.
+Requires Node.js 22+. The commands below currently install the published v0.3.1;
+v0.4.0 must not be assumed available until its release is explicitly announced.
 
 ```bash
 npm install --save-dev align-dotenv
@@ -48,13 +47,19 @@ Or add project scripts:
 }
 ```
 
-The Node.js release is tested on Linux/Ubuntu (including WSL) and Windows with
-Node.js 22 and 24. macOS is not currently part of the tested release matrix, but
-installation is not blocked.
+The v0.4.0 binary targets are **Linux x86_64** (validated on Ubuntu 24.04) and
+**Windows x86_64** (validated on Windows Server 2022), tested with Node 22/24/26.
+Bundled Python requires **GLIBC_2.38**; older Linux compatibility is not claimed.
+macOS, Linux ARM64, Windows ARM64 and musl/Alpine are not supported targets.
+Unsupported platform or missing optional executable packages fail safely; there
+are no installation/runtime binary downloads. Keep npm optional dependencies enabled.
 
-### Python
+### Python / PyPI
 
 Python 3.10–3.14 is supported.
+
+PyPI installs the canonical Python source. It is an installation ecosystem, not
+a separate implementation from the executable distributed through npm.
 
 ```bash
 uv tool install align-dotenv
@@ -65,6 +70,13 @@ python -m pip install align-dotenv
 ```
 
 ## Use
+
+The proposed standalone v0.4.0 release contains Linux and Windows x64 binaries,
+`SHA256SUMS`, `BUILD_METADATA.json`, `LICENSE` and third-party notices. These are
+not published yet. Keep the license/notice material with downloaded binaries and
+verify the checksum. On Linux, set the downloaded file executable (`chmod +x`).
+No user-installed Python is required; extraction restrictions, antivirus and
+native filesystem semantics can still affect executable operation.
 
 ### Explicit single-file mode
 

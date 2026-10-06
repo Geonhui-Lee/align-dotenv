@@ -1,10 +1,11 @@
 # Native Node port: behavioral contract and plan
 
-> Historical v0.3.1 reference notes. In v0.4.0 Phase 2, `node/` is private and
-> retained for differential tests; `node/npm/` distributes the thin launcher and
-> canonical Python executables. npm no longer owns dotenv semantics in that new
-> distribution. TypeScript retirement is deferred to Phase 3; Composer is future
-> work. See `NPM_EXECUTABLE.md` for actual validation status.
+> Historical v0.3.x port provenance only. Phase 3 removed the TypeScript
+> implementation and reference-only tooling at `7129bb5`, now merged into develop.
+> Active v0.4.0 uses Python source, standalone executables and the thin `node/npm/`
+> launcher; `node/` only holds dependency-free validation tooling. Descriptions of
+> the native Node implementation below are historical, not active production code.
+> See `RELEASE_V040.md` for release preparation; Composer remains out of scope.
 
 ## Scope and reference
 

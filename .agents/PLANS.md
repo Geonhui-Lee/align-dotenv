@@ -1,6 +1,17 @@
 # Development plan
 
-## v0.4.0 Phase 3 tracking
+## v0.4.0 release preparation
+
+Phase 3 `7129bb5` is fast-forward merged into develop. Post-merge baseline,
+standalone and full native npm gates passed (`37482798287`, `37482798195`,
+`37482798132`) before `release/v0.4.0` was created. Active Python/workspace/lock/
+launcher/platform/policy versions are 0.4.0; no tag, release or publication exists.
+See `RELEASE_V040.md` for the artifact policy, safe three-package publication,
+validation evidence requirements, and unresolved licensing/account/protection
+prerequisites. A notice inventory is not licensing clearance. Do not mark ready
+on CI alone, or enable `ENABLE_V040_RELEASE` before all approvals are confirmed.
+
+## v0.4.0 Phase 3 tracking (completed historical evidence)
 
 Phase 2 final commit `c75f86e` is fast-forward merged into `develop`; baseline,
 standalone and all six native npm jobs passed there (`37478221320`, `37478221414`,

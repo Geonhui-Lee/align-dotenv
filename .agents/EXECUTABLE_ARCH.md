@@ -2,8 +2,10 @@
 
 Phase 2 packaging/launcher work is documented in `NPM_EXECUTABLE.md`. Phase 1
 was fast-forwarded into `develop`; npm delegates semantics to the canonical
-Python executable in the development distribution. Native TypeScript remains
-temporary reference code; Composer remains future work.
+Python executable in the development distribution. Phase 3 retired native
+TypeScript at `7129bb5`, now merged into develop. The remainder of this document
+records historical Phase 1 evidence; current release architecture, artifacts,
+licensing blockers and publication policy are in `RELEASE_V040.md`.
 
 ## Decision and evidence boundary
 

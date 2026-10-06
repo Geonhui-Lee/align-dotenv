@@ -1,5 +1,12 @@
 # v0.4.0 Phase 2 — executable-backed npm
 
+Current release preparation is in `RELEASE_V040.md`. Versions are synchronized at
+0.4.0. Platform tarballs additionally contain `THIRD_PARTY_NOTICES.md` (currently
+an incomplete notice draft and explicit release blocker); their allowlist is five
+files, while the launcher remains three. Coordinated publication uses validated
+same-commit CI artifacts, verifies both platform publications before the main,
+and is blocked by both explicit opt-in and unresolved release-policy approvals.
+
 Phase 2 evidence below is historical. Phase 3 retires the TypeScript reference;
 see [PHASE3.md](PHASE3.md) for entry gates and removal scope. Current native parity
 uses Python source, standalone and installed wrapper only; all packaged safety
@@ -119,8 +126,9 @@ standalone run `37473152249`, and npm run `37473152242` (both supported OSes,
 Node 22/24/26). All six native consumer jobs passed; configuration alone was
 never treated as readiness. Any follow-up commit requires fresh full validation
 before readiness is declared. Artifacts have seven-day retention only.
-No package, tag or release publication is authorized: the reference workspace is
-private and the npm publisher also refuses this layout pending release automation.
+No package, tag or release publication is authorized. The workspace remains
+private. See the current coordinated workflow and `RELEASE_V040.md`; historical
+Phase 2 publication refusal has been replaced with fail-closed release approval.
 
 Composer is future work; TypeScript retirement is Phase 3. macOS, Linux ARM64, Windows
 ARM64, musl and older Linux are not claimed. Ubuntu 24.04 uses glibc 2.39 and

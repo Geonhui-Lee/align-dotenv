@@ -1,10 +1,11 @@
 # align-dotenv
 
-> This private, dependency-free workspace validates the unreleased executable-backed
+> This private, dependency-free workspace validates the v0.4.0 candidate executable-backed
 > npm distribution in `npm/`. The native TypeScript implementation, compiler and
 > reference-only tests have been retired. Python is the sole behavioral source;
 > JavaScript only launches the packaged executable. Released npm v0.3.1 is unchanged.
 > See `.agents/NPM_EXECUTABLE.md` and `.agents/PHASE3.md` in the repository.
+> Publication is blocked until `.agents/RELEASE_V040.md` prerequisites are resolved.
 
 Keep local dotenv files aligned with their templates without losing local values.
 
