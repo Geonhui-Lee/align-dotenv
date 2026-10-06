@@ -17,7 +17,7 @@ remain idempotent. If local syntax cannot be safely understood or preserved,
 reject it instead of silently dropping it. Never use actual secrets in fixtures,
 logs, or issue reports, and do not print dotenv values in errors.
 
-Shared Python/future Node parity cases live in [`fixtures/`](fixtures/README.md).
+Shared Python/Node parity cases live in [`fixtures/`](fixtures/README.md).
 Keep expected bytes and safe errors runtime-neutral; use case IDs rather than
 payloads in assertion diagnostics. The porting contract and next-phase scope are
 documented in [`.agents/NODE_PORT.md`](.agents/NODE_PORT.md).
@@ -32,9 +32,8 @@ npm --prefix node run test:package
 ```
 
 See [`node/README.md`](node/README.md) for CLI usage and safety limitations.
-Python remains the production/reference distribution; npm publication has not
-occurred; the Node manifest now explicitly permits the manual v0.3.0 bootstrap
-with `private: false`, while automated npm publishing stays disabled.
+Python and npm are both published distributions; Python v0.2.0 was the behavioral
+reference for the native Node port. Neither runtime has production dependencies.
 `test:package` packs the artifact,
 inspects its actual contents, installs it offline into a fresh external consumer,
 then tests npm's generated bin/shim through scripts and npm exec. Do not replace
@@ -47,66 +46,50 @@ restriction merely to reflect CI scope. Keep the package-local MIT license equal
 to the root LICENSE. Only compiled JS/declarations, README, LICENSE and package.json
 may ship; sources/tests/shared fixtures/planning files must stay out of the tarball.
 
-## v0.3.0 manual npm bootstrap and future joint releases
+## Synchronized releases (maintainers)
 
-The prepared Python and npm versions are `0.3.0`; this does not authorize
-publishing either distribution. The Ubuntu/Windows Node 22/24 gate passed in
-[Actions run 37423326194](https://github.com/Geonhui-Lee/align-dotenv/actions/runs/37423326194).
-For an explicitly authorized future release,
-require `vX.Y.Z == pyproject.toml == node/package.json == node/package-lock.json`
-before a future joint GitHub release. `node scripts/check-versions.mjs` validates
-all manifest/lockfile versions in CI; `--release` additionally requires the matching
-`RELEASE_TAG` environment variable, and `--tag v0.3.0` is useful locally.
+**v0.3.0 is released** on [GitHub](https://github.com/Geonhui-Lee/align-dotenv/releases/tag/v0.3.0),
+[PyPI](https://pypi.org/project/align-dotenv/0.3.0/), and
+[npm](https://www.npmjs.com/package/align-dotenv/v/0.3.0). Its manual npm account +
+2FA bootstrap is historical; do not repeat it or rerun the v0.3.0 publisher.
+Published npm versions are immutable. The Node port and published-state root
+README have since been merged into `develop`.
 
-`publish.yml` retains the existing PyPI explicit-release event, tag check, `pypi`
-environment and Trusted Publisher. It adds the stronger shared Python/npm version
-guard. Separate `publish-npm.yml` uses the same explicit release event, reruns both
-OS/Node matrix gates at the tagged source, then a protected `npm` environment and
-OIDC/provenance publisher. It is inert until the repository variable
-`ENABLE_NPM_PUBLISHING` equals `true`, and refuses to publish unless the manifest
-explicitly says `private: false`. Ordinary pushes cannot publish.
+The current procedure uses one explicitly published GitHub Release to trigger
+both `publish.yml` (PyPI Trusted Publishing, environment `pypi`) and
+`publish-npm.yml` (npm Trusted Publishing with provenance, environment `npm`).
+Ordinary pushes cannot publish. Do not manually upload distributions or add
+long-lived tokens. Preserve protected-environment approval requirements.
 
-`align-dotenv` does not yet exist on npm. A Trusted Publisher cannot be configured
-until the package exists, so **v0.3.0 is a manual interactive first publication**
-using the maintainer's npm account authentication and 2FA. `private: false` is now
-authorized and prepared; it is not authorization for this agent to publish.
-No npm token or credential is committed or added to Actions.
+1. Prepare documentation and synchronized version metadata in `pyproject.toml`,
+   `node/package.json`, and both lockfile version fields. Do not alter production
+   behavior for a documentation-only release.
+2. Run the Python suite, compile/import checks, Node workspace and packed-package
+   tests. Inspect the actual tarball and installed README and CLI in a fresh
+   consumer. Keep generated tarballs out of Git.
+3. Run `node scripts/check-versions.mjs` and
+   `node scripts/check-versions.mjs --tag vX.Y.Z` with the intended version.
+   Release mode (`--release`) additionally requires `RELEASE_TAG` in the environment.
+   Both publishing workflows enforce tag == Python == npm == lockfile versions.
+4. Commit/push and require green Ubuntu/Windows x Node 22/24 workspace and packed
+   gates, Python 3.10–3.14, and Python packaging at the exact release commit.
+5. Before tagging, verify repository variable `ENABLE_NPM_PUBLISHING=true` and
+   npm Trusted Publisher identity **Geonhui-Lee / align-dotenv / publish-npm.yml /
+   npm**. Confirm the package permits publication (`private: false`). Only direct
+   publishing permission matches this workflow; stage-only is a different policy.
+6. Tag the validated commit once, following repository convention, then publish
+   the explicit GitHub Release. Never move a published tag or replay an old
+   version's release event. Approve protected environments if required; do not
+   bypass them.
+7. Observe both workflows and verify public versions, npm `latest`, provenance,
+   and clean npm/Python installs before marking the release complete. Uploads are
+   not atomic: diagnose partial failures without republishing existing versions.
 
-Manual steps for the maintainer, after separately authorizing publication:
+The npm publisher uses GitHub-hosted Node 24 with npm >=11.5.1, `contents: read`
+and `id-token: write`, no npm access token, and
+`npm publish --provenance --access public`. Supported runtime Node >=22 is distinct
+from OIDC's Node >=22.14.0 requirement. See
+[official npm guidance](https://docs.npmjs.com/trusted-publishers/).
 
-1. Review this exact release commit and its green CI; recheck name/access and
-   confirm `ENABLE_NPM_PUBLISHING` remains unset or disabled. A registry 404 does
-   not guarantee reservability. Keep npm automation disabled through v0.3.0.
-2. From a clean checkout of the release commit, run the documented Python/Node
-   validation and `node scripts/check-versions.mjs --tag v0.3.0`.
-3. Authenticate interactively with `npm login` and verify the account with
-   `npm whoami`. From `node/`, generate and inspect `npm pack --json`, then publish
-   the inspected `align-dotenv-0.3.0.tgz` with
-   `npm publish ./align-dotenv-0.3.0.tgz --access public`, completing the 2FA prompt.
-   Never put credentials or OTPs in the repository, logs, or committed commands.
-   This local account-authenticated bootstrap does not promise OIDC provenance.
-4. Verify npm `align-dotenv@0.3.0` metadata and a fresh install/CLI invocation.
-   Separately create/push `v0.3.0` at the reviewed commit and publish the explicit
-   GitHub Release when authorized. `publish.yml` then publishes PyPI 0.3.0 through
-   its existing Trusted Publisher; approve its protected environment if required.
-   The npm workflow must remain disabled and must not attempt to republish 0.3.0.
-5. Verify PyPI installation and both distributions before marking v0.3.0 released.
-   Uploads are not atomic; handle partial failures without republishing an already
-   published version. Clean up the locally generated tarball without committing it.
-
-**After v0.3.0**, configure npm's Trusted Publisher for future releases:
-
-- Owner: **Geonhui-Lee**; repository: **align-dotenv**.
-- Workflow: **publish-npm.yml**; environment: **npm**.
-- Create/protect the GitHub **npm** environment with reviewer approval and release-tag
-  restrictions. Permit the direct publishing action used by this draft; restrict
-  traditional token access and do not introduce long-lived npm publishing tokens.
-- Enable `ENABLE_NPM_PUBLISHING=true` only for the next unpublished version's
-  release, after the v0.3.0 release event has completed. Do not rerun the v0.3.0
-  npm workflow after enabling it. Future explicit GitHub Releases use OIDC and
-  automatic npm provenance, with tag/version and platform validation intact.
-
-Current official npm OIDC requirements are npm >=11.5.1 and Node >=22.14.0;
-the draft uses Node 24 and checks the npm CLI version, with no npm access token.
-See `.agents/NODE_PORT.md` for source guidance and CI evidence. No external account
-settings, environments, variables, credentials or npm publisher were configured.
+v0.3.1 is a documentation patch preparing the first automated dual release. Its
+npm-facing README is end-user documentation, not a release-engineering runbook.

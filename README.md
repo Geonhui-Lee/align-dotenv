@@ -181,4 +181,4 @@ node scripts/check-versions.mjs
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for contributor guidance and
 [node/README.md](node/README.md) for Node.js-specific implementation and packaging
-details.
+details and npm CLI usage.

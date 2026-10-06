@@ -1,219 +1,76 @@
 # Development plan
 
-## Phase 1 — Core extraction
+## Released milestones
 
-- Create a small Python package with separate parser, reconciliation, file I/O, and CLI modules.
-- Support a single `align-dotenv <target> --template <template>` operation.
-- Keep local raw values and unknown variables; use the template's layout and atomic file replacement.
-- Add baseline unit and CLI tests without external runtime dependencies.
+### v0.1.0 — core CLI and safety
 
-## Phase 2 — Correctness and CLI safety (implemented)
+- Python parser, reconciliation, file I/O and CLI modules; explicit target/template
+  operation, local-value/state preservation and per-file atomic replacement.
+- Unknown-key keep/remove/error policies, non-writing check mode, safe diagnostics,
+  unsupported-local-syntax refusal, link/identity/permission/no-op tests.
+- MIT packaging, contributor guidance, CI and release-only PyPI Trusted Publishing.
+- [GitHub v0.1.0](https://github.com/Geonhui-Lee/align-dotenv/releases/tag/v0.1.0)
+  and [PyPI 0.1.0](https://pypi.org/project/align-dotenv/0.1.0/) published.
 
-- Expand fixtures for raw values, Unicode, empty values, LF/CRLF, duplicate keys, and final newlines.
-- Add explicit `keep` (default), `remove`, and `error` policies for unknown assignments.
-- Add non-writing `--check`, validate file paths, and keep user errors and output value-free.
-- Test atomic failure cleanup, permissions, unchanged files, and idempotency.
-- Document the narrow syntax scope and template-controlled line endings.
+### v0.2.0 — project mode
 
-## Phase 2.5 — Local syntax safety (implemented)
+- Recursive `.env*.example` / `.env*.template` discovery with conventional directory
+  exclusions, missing-target skips, ambiguity rejection and full preflight before
+  writes. Per-file application is not a cross-file transaction.
+- [GitHub v0.2.0](https://github.com/Geonhui-Lee/align-dotenv/releases/tag/v0.2.0)
+  and [PyPI 0.2.0](https://pypi.org/project/align-dotenv/0.2.0/) published.
 
-- Refuse to align unsupported meaningful local lines and multiline-looking quoted values.
-- Apply the same validation under `--check` and every unknown-key policy; never print values.
-- Allow local blank lines and ordinary comments to follow the template layout.
+### v0.3.0 — native Node CLI (released)
 
-## Phase 3 — Distribution and OSS readiness (released as v0.1.0)
+- [GitHub v0.3.0](https://github.com/Geonhui-Lee/align-dotenv/releases/tag/v0.3.0),
+  [PyPI 0.3.0](https://pypi.org/project/align-dotenv/0.3.0/), and
+  [npm 0.3.0](https://www.npmjs.com/package/align-dotenv/v/0.3.0) are published.
+- Release/tag source: `18678bb3dda22ab8b60762e0c0ecc3d8382b5c5c`; never move it.
+  npm was bootstrapped manually with account authentication + 2FA; PyPI used
+  [Trusted Publishing](https://github.com/Geonhui-Lee/align-dotenv/actions/runs/37428603117).
+  npm automation was skipped for this already-published version. Do not replay it.
+- The port and README update were merged via PR #1 into `develop`, preserving the
+  release ancestry. [Post-merge CI](https://github.com/Geonhui-Lee/align-dotenv/actions/runs/37430410781)
+  passed Ubuntu/Windows x Node 22/24, Python 3.10–3.14 and packaging.
+- Shared runtime-neutral fixtures and Python/Node consumers cover 36 canonical
+  reconciliation/safety cases. Differential validation included 7,000 parser,
+  3,000 reconciliation, 150 discovery-tree and 182 CLI scenarios. Known limitations
+  are recorded in [NODE_PORT.md](NODE_PORT.md), not perfect-equivalence claims.
+- TypeScript pure core, strict UTF-8 filesystem layer, frozen project preflight and
+  CLI use Node built-ins only. Python production sources remain the original
+  behavior reference; no independent npm version line or stable JS import API.
+- Baseline local validation: 47 Python, 378 Node workspace and 9 packed tests.
+  Ubuntu passes all source/packed tests; Windows has three POSIX mode assertions
+  skipped and no packed skips, with actual generated `.cmd` shim invocation.
+- Package root stays `node/`: 17 shipped files (7 JS, 7 declarations, README,
+  LICENSE, package.json), zero runtime dependencies, Node >=22. No sources/tests/
+  fixtures/maps/dependencies/env files ship. Package-local MIT license equals root.
 
-- Validate metadata, wheel/sdist, and isolated installation; document PyPI/uv/pipx installation.
-- Add README, MIT LICENSE, CONTRIBUTING, CI, and an explicit-release-only Trusted Publishing workflow.
-- Keep version `0.1.0` in `pyproject.toml`; polish CLI help/output later if needed.
-- **Release-ready:** repository and local distribution checks complete.
-- **GitHub release:** [v0.1.0](https://github.com/Geonhui-Lee/align-dotenv/releases/tag/v0.1.0) published.
-- **PyPI publication:** [align-dotenv 0.1.0](https://pypi.org/project/align-dotenv/0.1.0/) published through Trusted Publishing; public-index installation and CLI smoke test passed.
+## v0.3.1 — documentation patch / automated dual release
 
-## Phase 4 — Project-wide discovery (released as v0.2.0)
+- Replace stale npm pre-release/bootstrap README with end-user install, usage,
+  policies, exit codes, safety, platform and repository guidance.
+- Preserve root package links and Python/npm positioning; move maintainer details
+  exclusively to contributor/planning documentation.
+- Synchronize Python/npm/lockfile to 0.3.1 only after documentation review and
+  validation. No production source or CLI behavior changes.
+- Before release: Python tests + compile/import; Node clean install/build/workspace/
+  packed tests; real tarball/installed README and npm-shim verification; dependency-
+  free version guards; green Ubuntu/Windows x Node 22/24 and Python CI at the exact
+  pushed commit. macOS remains outside the tested release matrix without metadata
+  installation restrictions. WSL results count as Linux only.
+- Future automation is configured: explicit GitHub Release triggers PyPI Trusted
+  Publishing and npm OIDC/provenance, protected `npm` environment,
+  `ENABLE_NPM_PUBLISHING=true`. npm Trusted Publisher identity:
+  `Geonhui-Lee / align-dotenv / publish-npm.yml / npm` (maintainer-configured).
+  No tokens or manual uploads. Environment approval must never be bypassed.
+- Tag only after local/CI/packed/version gates pass; observe both publication
+  workflows and verify public versions, `latest`, provenance and fresh installs.
+  Do not mark v0.3.1 released before actual upload/public verification success.
+  Current status: preparation in progress; no v0.3.1 publication claimed here.
+- Reusable release procedure: [CONTRIBUTING.md](../CONTRIBUTING.md).
 
-- Discover `.env*.example` and `.env*.template` recursively with conventional directory exclusions.
-- Align existing targets only; fail on ambiguous mappings and preflight every pair before writing.
-- Support project-wide `--check` and unknown-key policies without changing single-file behavior.
-- **GitHub release:** [v0.2.0](https://github.com/Geonhui-Lee/align-dotenv/releases/tag/v0.2.0) published.
-- **PyPI publication:** [align-dotenv 0.2.0](https://pypi.org/project/align-dotenv/0.2.0/) published through Trusted Publishing; public-index installation and both CLI modes passed smoke tests.
-
-## Native Node behavioral parity preparation
-
-- Python v0.2.0 remains the reference and production implementation.
-- Shared runtime-neutral fixtures and their Python consumer pin exact text,
-  errors, CLI safety and second-pass behavior without restructuring the package.
-- See [NODE_PORT.md](NODE_PORT.md) for the audit, known limitations, module mapping
-  and gated implementation sequence.
-
-## Native Node pure core (implemented, development-only)
-
-- Added `node/src/parser.ts` and `node/src/reconcile.ts` without Python changes.
-- Initially a private Node 24+ workspace, strict ESM build and built-in Node tests.
-  TypeScript-only development tooling; no runtime dependencies or binary entry point.
-- Both runtimes consume the shared reconciliation fixtures; the pure Node suite
-  checks 34 string-level cases. Byte-input cases now run through the file layer.
-- Current Node release CI covers Ubuntu/Windows on Node 22/24 (see below);
-  Python CI remains intact. The former macOS gate is retired by scope decision.
-- The Node implementation is not production-ready.
-
-## Native Node single-file layer (implemented; Ubuntu/Windows validation passed)
-
-- Added `node/src/files.ts`: strict UTF-8 with retained BOM/newline bytes,
-  lstat target rejection, permitted explicit-mode template symlinks, bigint same-file
-  identity, unchanged/check no-op behavior and mode-preserving native replacement.
-- Same-directory exclusive/random temporary files; no delete-target fallback.
-  Observed late unsafe target changes are rejected and owned temporary files cleaned.
-- Added filesystem shared-fixture tests for all 36 cases, including invalid UTF-8
-  in either input under every policy/check setting, and focused failure/link tests.
-- Added `@types/node` as a dev dependency; runtime dependencies remain zero.
-- Filesystem-phase baseline under WSL/Linux: 176 Node tests and 47 Python tests passed.
-  Ubuntu/Windows GitHub Actions results now pass; macOS is out of release scope.
-  See [NODE_PORT.md](NODE_PORT.md) for Windows rename/mode limits, diagnostic
-  differences, TOCTOU caveats and validation status. Do not infer Windows/macOS
-  correctness from WSL results; macOS is not currently tested or claimed supported.
-- The project phase below reuses common filesystem primitives; existing single-file
-  public behavior/tests remain intact. Cross-platform validation is recorded below.
-
-## Native Node project layer (implemented; Ubuntu/Windows validation passed)
-
-- `node/src/project.ts` implements recursive template discovery, all five excluded
-  directories, directory-symlink avoidance, deterministic pathlib-like ordering,
-  ambiguity and discovered-template-as-target rejection, and missing-target skipping.
-- Preserves unusual directory-name candidates without descending into template-like
-  directories; project template symlinks are rejected, unlike explicit file mode.
-- `planProject` validates/reconciles every existing pair before any writes and returns
-  frozen pairs/changed updates/skipped count. Errors carry safe relative labels.
-- `applyProject` rechecks each changed target, then uses staged content/mode with the
-  same writer as `alignFile`. Shared primitives live in `internal/file-operations.ts`,
-  not new public testing hooks. Application is individually atomic, not transactional;
-  later failures do not rollback earlier updates. Race/Windows mode/rename limits remain.
-- 87 new project tests: 54 shared-fixture checks and 33 focused temporary-tree tests.
-  Locally under WSL/Linux, all 263 Node tests and 47 Python tests pass. A one-off
-  150-tree discovery comparison matches Python (seed `20261006`).
-- Actions Ubuntu: passed. Windows: passed. macOS: outside tested matrix.
-  The authoritative run is recorded under synchronized release preparation below.
-  Current Ubuntu/Windows Node 22/24 CI includes the project suite. New Windows
-  symlink fixture skips require actual capability failure; POSIX mode assertion skips
-  are explicit. Python production sources remain unchanged; the later authorized
-  synchronized metadata update is recorded below.
-- CLI and package readiness are implemented below; publication and releases remain
-  **not performed**.
-
-## Native Node CLI layer (implemented privately; Ubuntu/Windows validation passed)
-
-- `node/src/cli.ts` orchestrates existing file/project modules through async `main`;
-  a small cwd/output context supports direct tests. `bin.ts` retains a shebang and
-  only assigns `process.exitCode`. No npm `bin` mapping was needed.
-- Supported invocation/options, explicit/project summaries, skipped grammar and
-  exit codes 0/1/2 match Python. Project mode uses process cwd; checks never apply.
-- Structured errors retain safe diagnostics. `ProjectValidationError.failureKind`
-  identifies wrapped UTF-8/I/O failures without raw causes, enabling generic CLI
-  normalization just like Python. Argument errors omit user tokens; help is concise
-  static text rather than byte-identical argparse output. See NODE_PORT.md for
-  unspecified argparse precedence/short-cluster limitations.
-- 115 new CLI tests: 107 process integration tests plus 8 direct API/build tests.
-  Locally in WSL/Linux, 378 Node tests and 47 Python tests pass, including previous
-  suites. A one-off 182-scenario Python-vs-Node CLI comparison passes for exit codes,
-  bytes and stable output. Native Windows CRLF output is specified/tested by platform,
-  not locally validated under WSL.
-- Actions Ubuntu: passed. Windows: passed. macOS: outside tested matrix;
-  filesystem/project/CLI and installed npm-shim gates passed in real Actions.
-  The Ubuntu/Windows matrix automatically includes all CLI tests. Python CI is
-  unchanged. Runtime dependencies remain zero; workspace remains private.
-- Package readiness is now implemented below, without production behavior changes.
-
-## Native npm package readiness (READY FOR NPM RELEASE; manual bootstrap prepared)
-
-- `node/package.json`: production metadata, name `align-dotenv`, MIT/author/GitHub
-  URLs, repository subdirectory, `engines >=22`, compiled `align-dotenv` bin and
-  restricted dist/LICENSE file list. Final release preparation explicitly sets
-  `private: false`; automated npm publishing remains disabled for v0.3.0.
-  Prepared npm version `0.3.0` equals Python after the explicitly authorized metadata
-  update; no Python production behavior changes.
-- Byte-identical `node/LICENSE`; npm-facing README clearly marks publication as
-  not performed and documents installation/CLI/safety/platform/exit-code behavior.
-- Real artifact: 17 files (7 JS, 7 declarations, README, LICENSE, package.json).
-  No sources, fixtures, tests, sourcemaps, Python or installed dependencies ship.
-  Prepack builds automatically. No source or compiler required in consumers.
-- `npm run test:package`: 9 tests inspect gzip/tar contents/security/imports/version,
-  then fresh offline installation and npm-generated bin/shim execution. All shared
-  success bytes plus explicit/project/check/policy/error scenarios are covered.
-- Node minimum 22 justified by APIs/current LTS status; exact 22.0.0 build/source/
-  packed tests pass locally with npm 10. Current npm publisher requirements are
-  separate from runtime minimum. Runtime dependencies still zero; dev deps unchanged.
-- CI has distinct workspace/packed steps on Ubuntu/Windows and Node 22/24. macOS
-  is not in the tested release matrix; no `os` restriction added. Local WSL results
-  do not validate Windows. Actions Ubuntu: passed. Windows: passed.
-- Name lookup 2026-10-06: npm 404, no public package found; ownership/reservability
-  not guaranteed and must be reconfirmed. No package/name reservation performed.
-- Joint release guard now requires tag == Python == npm == lockfile version in
-  release mode. `0.3.0` was selected explicitly after the platform gate passed.
-- Trusted Publishing/provenance draft in `publish-npm.yml` is release-only and
-  requires explicit variable opt-in plus non-private manifest, protected environment
-  and tag/version checks. Existing PyPI protections are retained and strengthened
-  with the shared version guard. No secrets, settings or uploads activated.
-- Status: **READY FOR NPM RELEASE**; private removal now authorized and prepared.
-  Actual publication and account-side setup remain maintainer actions.
-
-## Synchronized v0.3.0 preparation (not released)
-
-- Committed port: `926d7aef877db7222ba728c9a50f04641e38777b` on
-  `chore/node-port-behavioral-contract`, pushed to origin (not develop).
-- [CI 37423326194](https://github.com/Geonhui-Lee/align-dotenv/actions/runs/37423326194)
-  passed before any version bump: Ubuntu/22, Ubuntu/24, Windows/22, Windows/24.
-  All packed steps passed, including installed `.cmd`/npm exec proof on Windows.
-  Ubuntu: 378 source + 9 packed tests, no skips. Windows: 375 source passed,
-  3 POSIX permission assertions skipped, all 9 packed passed, no packed skips.
-  Python 3.10–3.14 and packaging passed. No CI failures or safety weakening.
-- Python/npm/lockfile versions prepared as `0.3.0` only after that real green gate.
-  `scripts/check-versions.mjs` and 9 tests provide dependency-free CI/release reuse.
-- Root/Node README position npm as a first-class development CLI, not a supported
-  public JS import API. Official tested Node OSes: Linux/Ubuntu and Windows; macOS
-  excluded from test scope without metadata installation restrictions.
-- Manual steps now follow the bootstrap sequence below; Trusted Publisher setup
-  comes after npm 0.3.0 exists. No account changes, publication, tags or releases
-  were performed. Both distributions' upload success must be verified before
-  marking v0.3.0 released; they are not a cross-registry transaction.
-- Final preparation commit `c1ced078c6238ecd26572c4cdafd82d2b78e3921` pushed;
-  [CI 37424356302](https://github.com/Geonhui-Lee/align-dotenv/actions/runs/37424356302)
-  passed all four Ubuntu/Windows Node 22/24 entries, including version guard,
-  workspace, packed fresh installation and actual npm shim invocation. Python
-  3.10–3.14 and packaging passed. No CI failures/fixes.
-- Final local checks passed: 47 Python + compile/import, 378 Node workspace,
-  9 packed and 9 guard tests; intended 17-file 0.3.0 artifact inspected outside
-  checkout. No generated artifacts or dotenv files tracked; no value markers in
-  logs. `private: true` retained, npm opt-in variable unset, nothing published,
-  tagged or released. Status: **READY FOR FINAL RELEASE AUTHORIZATION**.
-
-## Final v0.3.0 release commit preparation (not published)
-
-- Explicitly authorized `private: false` in `node/package.json`; package identity
-  stays `align-dotenv@0.3.0`. Lockfile versions/identity already match; no runtime
-  dependency or Python production change. Earlier private-protected state above
-  is historical, superseded by this release preparation.
-- npm v0.3.0 is the first package publication: manual interactive bootstrap with
-  maintainer npm account authentication + 2FA. Trusted Publisher configuration
-  requires the package to exist and cannot perform this first publication.
-- Keep `ENABLE_NPM_PUBLISHING` unset/disabled for the v0.3.0 GitHub Release and
-  reruns. Do not republish manually published 0.3.0 from Actions.
-- After v0.3.0: configure npm Trusted Publisher owner `Geonhui-Lee`, repository
-  `align-dotenv`, workflow `publish-npm.yml`, environment `npm`, with protected
-  environment approval and direct publishing permission. Enable
-  `ENABLE_NPM_PUBLISHING=true` only for a future unpublished version's explicit
-  GitHub Release. Future releases use OIDC and automatic npm provenance.
-- PyPI workflow remains explicit GitHub Release-driven with unchanged safeguards;
-  npm workflow opt-in remains unchanged. No npm tokens/credentials added.
-- Release commands/ordered maintainer steps: `CONTRIBUTING.md`. No publication,
-  tags or releases performed. Final private:false local validation passed: 47
-  Python tests plus compile/import, 378 workspace tests, 9 packed tests and shared
-  version check. Tarball has 17 files, 13,278 compressed / 41,984 unpacked bytes;
-  README/LICENSE present, zero runtime dependencies, no payload/local-path markers,
-  no generated artifacts/.env tracked, Python production unchanged. Packed metadata
-  assertion strictly checks private:false. Repository npm opt-in variable is unset.
-- Status: **READY FOR MANUAL NPM BOOTSTRAP**, subject to final pushed-commit CI.
-
-## Later ideas (not part of v0.2.0)
+## Later ideas (not part of the documentation patch)
 
 ### Likely next
 
@@ -227,5 +84,5 @@
 
 ### Future target management
 
-- Creation of missing dotenv targets and explicit opt-in initialization behavior.
+- Explicit opt-in creation of missing dotenv targets.
 - Interactive behavior.

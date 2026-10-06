@@ -1,6 +1,6 @@
 # Inert until explicit maintainer opt-in AND a published GitHub Release.
-# v0.3.0 is a manual bootstrap: keep the opt-in disabled through its release/reruns.
-# The publisher still requires explicit private:false; no account settings are configured.
+# v0.3.0 was the completed manual bootstrap; never replay its publication.
+# Future unpublished versions use the configured npm environment/Trusted Publisher.
 name: Publish to npm (protected)
 
 on:

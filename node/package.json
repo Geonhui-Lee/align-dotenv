@@ -1,6 +1,6 @@
 {
   "name": "align-dotenv",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "private": false,
   "type": "module",
   "description": "Align local dotenv files with their templates while preserving existing values.",
