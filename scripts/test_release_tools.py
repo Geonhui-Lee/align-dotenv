@@ -17,6 +17,30 @@ spec = importlib.util.spec_from_file_location("prepare_release", ROOT / "scripts
 prepare = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(prepare)
 
+pypi_spec = importlib.util.spec_from_file_location("check_pypi_existing", ROOT / "scripts/check-pypi-existing.py")
+pypi = importlib.util.module_from_spec(pypi_spec)
+pypi_spec.loader.exec_module(pypi)
+
+
+class PyPIRecoveryTests(unittest.TestCase):
+    def test_absent_and_complete_matching_version(self):
+        with tempfile.TemporaryDirectory(prefix="align-pypi-recovery-") as temp:
+            directory = Path(temp)
+            files = {"example.whl": b"wheel", "example.tar.gz": b"source"}
+            for name, data in files.items():
+                (directory / name).write_bytes(data)
+            published = dict(info=dict(version="0.4.0"), urls=[dict(filename=name,
+                digests=dict(sha256=hashlib.sha256(data).hexdigest())) for name, data in files.items()])
+            self.assertFalse(pypi.already_published(directory, "0.4.0", None))
+            self.assertTrue(pypi.already_published(directory, "0.4.0", published))
+            for fault in ("partial", "hash", "version"):
+                invalid = json.loads(json.dumps(published))
+                if fault == "partial": invalid["urls"].pop()
+                if fault == "hash": invalid["urls"][0]["digests"]["sha256"] = "0" * 64
+                if fault == "version": invalid["info"]["version"] = "0.3.1"
+                with self.subTest(fault=fault), self.assertRaisesRegex(AssertionError, "never republish"):
+                    pypi.already_published(directory, "0.4.0", invalid)
+
 
 class ReleaseAssemblyTests(unittest.TestCase):
     def setUp(self):

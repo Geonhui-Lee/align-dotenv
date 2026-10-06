@@ -39,3 +39,31 @@ test("release: invisible published platform stops before main", async () => {
   await assert.rejects(publishInOrder(npm, async () => null, async (item) => writes.push(item.name)), /not yet visible/);
   assert.deepEqual(writes, [names[0]]);
 });
+
+for (const count of [0, 1, 2, 3]) {
+  test(`release: recover ${count} matching existing packages in platform-first order`, async () => {
+    const state = new Map(npm.slice(0, count).map((item) => [item.name, published(item)]));
+    const writes = [];
+    await publishInOrder(npm, async (item) => state.get(item.name), async (item) => {
+      writes.push(item.name); state.set(item.name, published(item));
+    });
+    assert.deepEqual(writes, names.slice(count));
+  });
+}
+test("release: main without platforms stops without publishing", async () => {
+  let writes = 0;
+  await assert.rejects(publishInOrder(npm, async (item) => item.name === names[2] ? published(item) : null,
+    async () => { writes++; }), /main exists without both/);
+  assert.equal(writes, 0);
+});
+for (const fault of ["integrity", "provenance"]) {
+  test(`release: existing version with incorrect ${fault} stops every mutation`, async () => {
+    let writes = 0;
+    const metadata = published(npm[1]);
+    if (fault === "integrity") metadata.dist.integrity = "sha512-different";
+    else delete metadata.dist.attestations;
+    await assert.rejects(publishInOrder(npm, async (item) => item.name === names[1] ? metadata : null,
+      async () => { writes++; }), /never republish/);
+    assert.equal(writes, 0);
+  });
+}
