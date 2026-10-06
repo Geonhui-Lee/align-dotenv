@@ -59,6 +59,23 @@ test("executable-backed npm: real packed consumer and four-way parity", { skip: 
     check(!resolve(temporary).startsWith(resolve(root) + "/"), "consumer must be outside checkout");
     const consumer = join(temporary, "consumer with spaces"), cache = join(temporary, "npm-cache"), tools = join(temporary, "tools");
     await fs.mkdir(consumer); await fs.mkdir(tools);
+    await t.test("staging rejects stale identity, wrong digest/target and nonfresh destinations", async () => {
+      const input = join(temporary, "invalid build"); await fs.mkdir(input);
+      const metadata = JSON.parse(await fs.readFile(join(dirname(executable), "metadata.json"), "utf8"));
+      await fs.copyFile(executable, join(input, metadata.filename));
+      for (const patch of [{ commit: "0".repeat(40) }, { version: "9.9.9" }, { architecture: "arm64" }, { sha256: "0".repeat(64) }]) {
+        await fs.writeFile(join(input, "metadata.json"), JSON.stringify({ ...metadata, ...patch }));
+        const output = join(temporary, "rejected staging");
+        const result = await run(process.execPath, [join(root, "scripts/pack-npm.mjs"), input, output], root);
+        check(result.code === 1 && !result.stderr.includes(input), "staging rejection unsafe");
+        check(!(await fs.readdir(temporary)).includes("rejected staging"), "rejected build created output");
+      }
+      await fs.writeFile(join(input, "metadata.json"), JSON.stringify(metadata));
+      const output = join(temporary, "occupied staging"); await fs.mkdir(output);
+      await fs.writeFile(join(output, "sentinel"), "owned sentinel");
+      check((await run(process.execPath, [join(root, "scripts/pack-npm.mjs"), input, output], root)).code === 1, "existing staging accepted");
+      check((await fs.readFile(join(output, "sentinel"), "utf8")) === "owned sentinel", "existing output overwritten");
+    });
     const standalone = join(temporary, process.platform === "win32" ? "align-dotenv.exe" : "align-dotenv");
     await fs.copyFile(executable, standalone); await fs.chmod(standalone, 0o755);
     const node = join(tools, process.platform === "win32" ? "node.exe" : "node");
@@ -89,6 +106,9 @@ test("executable-backed npm: real packed consumer and four-way parity", { skip: 
         check(entries.get("LICENSE").equals(await fs.readFile(join(root, "LICENSE"))), "license mismatch");
         const manifest = JSON.parse(entries.get("package.json"));
         check(!manifest.scripts, "no install/download scripts allowed");
+        if (name === "main") {
+          check(manifest.alignDotenvBuild?.version === manifest.version && manifest.alignDotenvBuild?.sourceCommit === execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).trim(), "launcher source/version identity mismatch");
+        }
         if (name !== "main") {
           const metadata = JSON.parse(entries.get("metadata.json"));
           const bytes = entries.get(`bin/${filename}`);
@@ -317,6 +337,17 @@ test("executable-backed npm: real packed consumer and four-way parity", { skip: 
       }
     });
     await t.test("omitted platform and missing executable fail safely with exit 2", async () => {
+      const omittedConsumer = j", "replacement failure diagnostic mismatch");
+        check(before === await fingerprint(file), "replacement failure altered original");
+        check(!(await fs.readdir(consumer)).some((name) => name.startsWith(".align-dotenv-")), "replacement failure leaked temporary");
+      } finally {
+        if (locker) {
+          const closed = new Promise((done) => locker.once("exit", done));
+          locker.stdin.end("release\n"); await closed;
+        } else { await fs.chmod(consumer, 0o700); }
+      }
+    });
+    await t.test("omitted platform and missing executable fail safely with exit 2", async () => {
       const omittedConsumer = join(temporary, "omitted optional consumer");
       await fs.mkdir(omittedConsumer);
       await fs.writeFile(join(omittedConsumer, "package.json"), '{"private":true}');
@@ -329,6 +360,13 @@ test("executable-backed npm: real packed consumer and four-way parity", { skip: 
       check(omitted.code === 2 && omitted.stdout === "" && omitted.stderr.includes("optional dependencies enabled"), "missing package error unsafe");
       check(!omitted.stderr.includes(consumer), "launcher leaks consumer path");
       await fs.rename(installed + "-saved", installed);
+      if (process.platform === "linux") {
+        const binary = join(installed, "bin", filename);
+        await fs.chmod(binary, 0o644);
+        const denied = await wrapper();
+        check(denied.code === 2 && denied.stderr.includes("executable permissions") && !denied.stderr.includes(consumer), "real permission error unsafe");
+        await fs.chmod(binary, 0o755);
+      }
       await fs.unlink(join(installed, "bin", filename));
       check((await wrapper()).code === 2, "missing binary did not fail safely");
     });

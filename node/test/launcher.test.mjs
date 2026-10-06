@@ -24,7 +24,9 @@ test("launcher: unsupported/missing/mismatched packages are safe; POSIX transpor
     });
     await write("darwin-x64");
     check((await run()).stderr === "align-dotenv: unsupported platform; supported targets are Linux x64 and Windows x64.\n", "unsupported diagnostic mismatch");
-    await write("linux-arm64"); check((await run()).code === 2, "unsupported architecture accepted");
+    for (const target of ["linux-arm64", "win32-arm64", "darwin-arm64", "freebsd-x64"]) {
+      await write(target); check((await run()).code === 2, "unsupported architecture/platform accepted");
+    }
     await write("linux-x64");
     let result = await run();
     check(result.code === 2 && !result.stderr.includes(root) && result.stdout === "", "missing package unsafe");

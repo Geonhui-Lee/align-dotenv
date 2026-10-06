@@ -36,6 +36,10 @@ records exact filename, size, digest, OS/architecture, project version, source
 commit and Python/PyInstaller versions. This is an integrity/build relationship,
 not a cryptographic attestation or runtime checksum verifier.
 
+The staged main manifest also records `alignDotenvBuild.version` and
+`alignDotenvBuild.sourceCommit`. Changes to tracked launcher/manifests/build
+tooling since HEAD are rejected too; unrelated untracked files remain untouched.
+
 Linux builds require binutils `strip` and use PyInstaller `--strip` to remove
 CPython/vendor DWARF build paths. Windows PE binaries are never stripped.
 

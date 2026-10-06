@@ -13,7 +13,7 @@ try {
   const version = checkVersions();
   const commit = execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).trim();
   // A stale build cannot be presented as current-source evidence.
-  if (execFileSync("git", ["diff", "HEAD", "--", "src/align_dotenv", "pyproject.toml"], { cwd: root }).length) throw new Error();
+  if (execFileSync("git", ["diff", "HEAD", "--", "src/align_dotenv", "pyproject.toml", "node/npm", "scripts/build-executable.py", "scripts/pack-npm.mjs", "scripts/check-versions.mjs"], { cwd: root }).length) throw new Error();
   const metadata = JSON.parse(await fs.readFile(join(resolve(input), "metadata.json"), "utf8"));
   const target = metadata.os === "Linux" ? "linux-x64" : metadata.os === "Windows" ? "win32-x64" : "";
   if (!target || metadata.architecture !== "x64" || metadata.version !== version || metadata.commit !== commit) throw new Error();
@@ -35,7 +35,9 @@ try {
     await fs.mkdir(join(directory, "bin"), { recursive: true });
     await fs.copyFile(join(root, "LICENSE"), join(directory, "LICENSE"));
   }
-  await fs.copyFile(join(root, "node/npm/package.json"), join(main, "package.json"));
+  const mainManifest = JSON.parse(await fs.readFile(join(root, "node/npm/package.json"), "utf8"));
+  await fs.writeFile(join(main, "package.json"), JSON.stringify({ ...mainManifest,
+    alignDotenvBuild: { version, sourceCommit: commit } }, null, 2) + "\n");
   await fs.copyFile(join(root, "node/npm/bin/align-dotenv.js"), join(main, "bin/align-dotenv.js"));
   await fs.chmod(join(main, "bin/align-dotenv.js"), 0o755);
   await fs.copyFile(join(root, "node/npm/platforms", target, "package.json"), join(platform, "package.json"));
