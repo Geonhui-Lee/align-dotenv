@@ -153,6 +153,7 @@ test("executable-backed npm: real packed consumer and four-way parity", { skip: 
       await fs.copyFile(otherTarball, path); paths.push(path);
       await fs.copyFile(path, join(staging, "tarballs", `align-dotenv-${other}-${manifest.version}.tgz`));
     });
+    check(paths.length === 3, "tarball inspection failed; consumer scenarios cannot run");
     // npm 11 needs metadata for both optional dependencies in a reproducible
     // offline lockfile, even though the incompatible package is never installed.
     await fs.writeFile(join(consumer, "package.json"), JSON.stringify({ name: "offline-consumer", private: true, scripts: { align: "align-dotenv" },

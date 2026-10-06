@@ -50,6 +50,10 @@ tar members and scan for known fixture values and personal/checkout paths.
 `scripts/audit-executable.py` also scans unpacked PyInstaller modules, not only
 compressed strings. No fixtures, source, caches or build workdirs are shipped.
 
+The two tracked MIT license copies use explicit LF checkout attributes so
+cross-platform tarballs carry identical license bytes. License and dotenv-byte
+assertions are never normalized to hide a packaging mismatch.
+
 ## npm behavior and gates
 
 For unpublished offline tests, provide the main tarball and **both** real
