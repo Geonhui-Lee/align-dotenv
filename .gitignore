@@ -21,3 +21,7 @@ dist/
 
 # Project-generated files
 skills-lock.json
+
+# Node development workspace
+node_modules/
+*.tgz

@@ -31,3 +31,26 @@ jobs:
       - run: python -m pip install build twine
       - run: python -m build
       - run: python -m twine check --strict dist/*
+
+  node-readiness:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        node-version: ['22', '24']
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: node
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+          cache-dependency-path: node/package-lock.json
+      - run: npm ci
+      - name: Workspace tests
+        run: npm test
+      - name: Packed artifact and installed npm-bin tests
+        run: npm run test:package

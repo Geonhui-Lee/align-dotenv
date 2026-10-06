@@ -17,17 +17,51 @@ remain idempotent. If local syntax cannot be safely understood or preserved,
 reject it instead of silently dropping it. Never use actual secrets in fixtures,
 logs, or issue reports, and do not print dotenv values in errors.
 
-## Release (maintainers)
+Shared Python/future Node parity cases live in [`fixtures/`](fixtures/README.md).
+Keep expected bytes and safe errors runtime-neutral; use case IDs rather than
+payloads in assertion diagnostics. The porting contract and next-phase scope are
+documented in [`.agents/NODE_PORT.md`](.agents/NODE_PORT.md).
 
-The version lives only in `pyproject.toml` (semantic versioning). To release `v0.1.0`:
+For the functionally complete Node implementation (Node 22+, npm package root `node/`):
 
-1. Ensure CI is green on the release commit.
-2. Create the GitHub environment named exactly `pypi`.
-3. Configure a PyPI Trusted Publisher: owner `Geonhui-Lee`, repository
-   `align-dotenv`, workflow `publish.yml`, environment `pypi`.
-4. Create a GitHub release tagged `v0.1.0` at that commit. Publishing runs only
-   for an explicit GitHub release with a tag matching `pyproject.toml`; ordinary
-   pushes do not publish.
-5. Wait for the publish workflow to succeed, then verify installation from PyPI.
-6. Only after both the GitHub release and PyPI publication succeed, update
-   `.agents/PLANS.md` to mark Phase 3 released.
+```bash
+npm --prefix node ci
+npm --prefix node run build
+npm --prefix node test
+npm --prefix node run test:package
+```
+
+See [`node/README.md`](node/README.md) for CLI usage and safety limitations.
+Python remains the production/reference distribution; npm publication has not
+occurred and the Node package remains private. `test:package` packs the artifact,
+inspects its actual contents, installs it offline into a fresh external consumer,
+then tests npm's generated bin/shim through scripts and npm exec. Do not replace
+this gate with tests invoking repository `dist/bin.js` directly. Tarballs are
+generated in owned temporary directories, cleaned afterward and ignored by git.
+
+Node CI covers Ubuntu and Windows on Node 22 and 24. WSL local results validate
+Linux only. macOS is not in the tested release matrix; do not add an npm `os`
+restriction merely to reflect CI scope. Keep the package-local MIT license equal
+to the root LICENSE. Only compiled JS/declarations, README, LICENSE and package.json
+may ship; sources/tests/shared fixtures/planning files must stay out of the tarball.
+
+## Future joint release (maintainers; not enabled)
+
+The current preparatory npm version equals Python's `0.2.0`; it does not authorize
+republishing Python or publishing npm. Choose the next version explicitly, then
+require `vX.Y.Z == pyproject.toml == node/package.json == node/package-lock.json`
+before a future joint GitHub release. Package validation already checks Python/npm
+version equality. Both Ubuntu and Windows workspace/packed gates must pass.
+
+The existing `publish.yml` PyPI workflow is unchanged: only explicit GitHub
+releases whose tags match Python's version publish, using the `pypi` environment
+and Trusted Publisher. A future npm workflow should use a protected `npm`
+environment, explicit release event, tag/version checks, GitHub-hosted runner,
+`id-token: write`, and npm Trusted Publishing with automatic provenance from this
+public repository. Do not add a push-triggered publisher or long-lived npm token.
+
+Keep `private: true` until separately authorized publication preparation. Confirm
+name ownership and first-publication bootstrap with the maintainer; no npm account
+settings, secrets or publishers have been configured. Current trusted-publishing
+requirements and remaining steps are in `.agents/NODE_PORT.md`. Never publish,
+create tags/releases, or mark publication complete during package validation.

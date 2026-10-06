@@ -1,0 +1,218 @@
+{
+  "schema_version": 1,
+  "cases": [
+    {
+      "id": "preserve-values-and-layout",
+      "template": "# Canonical layout\nREQUIRED=default\n\nNEW=default\n",
+      "local": "# Local note\n\nREQUIRED=private-value\n",
+      "unknown": "keep",
+      "expected": "# Canonical layout\nREQUIRED=private-value\n\nNEW=default\n",
+      "unknown_keys": []
+    },
+    {
+      "id": "commented-state-and-export",
+      "template": "  export ACTIVE=default\n  # export OPTIONAL=default\n# PLAIN=default\n",
+      "local": "# export ACTIVE=private-value\nexport OPTIONAL=local-value\nPLAIN=example-secret\n",
+      "unknown": "keep",
+      "expected": "# export ACTIVE=private-value\n  export OPTIONAL=local-value\nPLAIN=example-secret\n",
+      "unknown_keys": []
+    },
+    {
+      "id": "raw-values",
+      "template": "SPACES=default\nHASH=default\nEQUALS=default\nURL=default\nSINGLE=default\nDOUBLE=default\n",
+      "local": "SPACES=  private-value  \nHASH=local-value # not stripped\nEQUALS=local-value=a=b\nURL=https://example.invalid/path?a=b&c=d#fragment\nSINGLE='local-value # = spaces'\nDOUBLE=\"example-secret \\\"quoted\\\"\"\n",
+      "unknown": "keep",
+      "expected": "SPACES=  private-value  \nHASH=local-value # not stripped\nEQUALS=local-value=a=b\nURL=https://example.invalid/path?a=b&c=d#fragment\nSINGLE='local-value # = spaces'\nDOUBLE=\"example-secret \\\"quoted\\\"\"\n",
+      "unknown_keys": []
+    },
+    {
+      "id": "duplicate-local-final-value-and-state",
+      "template": "TOKEN=default\n",
+      "local": "TOKEN=local-value\n# export TOKEN=private-value\n",
+      "unknown": "keep",
+      "expected": "# TOKEN=private-value\n",
+      "unknown_keys": []
+    },
+    {
+      "id": "duplicate-template-lines-remain",
+      "template": "TOKEN=default\n# export TOKEN=default\n",
+      "local": "TOKEN=private-value\n",
+      "unknown": "keep",
+      "expected": "TOKEN=private-value\nexport TOKEN=private-value\n",
+      "unknown_keys": []
+    },
+    {
+      "id": "unknown-keep-first-seen-order-final-representation",
+      "template": "KNOWN=default\n",
+      "local": "Z=local-value\nKNOWN=private-value\n# A=example-secret\n# export Z=private-value\n",
+      "unknown": "keep",
+      "expected": "KNOWN=private-value\n\n# export Z=private-value\n# A=example-secret\n",
+      "unknown_keys": ["A", "Z"]
+    },
+    {
+      "id": "unknown-remove",
+      "template": "KNOWN=default\n",
+      "local": "Z=local-value\nKNOWN=private-value\n# A=example-secret\n",
+      "unknown": "remove",
+      "expected": "KNOWN=private-value\n",
+      "unknown_keys": ["A", "Z"]
+    },
+    {
+      "id": "unknown-error-with-no-unknowns",
+      "template": "KNOWN=default\n",
+      "local": "KNOWN=private-value\n",
+      "unknown": "error",
+      "expected": "KNOWN=private-value\n",
+      "unknown_keys": []
+    },
+    {
+      "id": "lf-template-crlf-local",
+      "template": "# Heading\nKEY=default\n",
+      "local": "KEY=private-value\r\n",
+      "unknown": "keep",
+      "expected": "# Heading\nKEY=private-value\n",
+      "unknown_keys": []
+    },
+    {
+      "id": "crlf-template-lf-local",
+      "template": "# Heading\r\nKEY=default\r\n",
+      "local": "KEY=private-value\n",
+      "unknown": "keep",
+      "expected": "# Heading\r\nKEY=private-value\r\n",
+      "unknown_keys": []
+    },
+    {
+      "id": "mixed-endings-unknown-retained-lf-separator",
+      "template": "KEY=default\r\n",
+      "local": "KEY=private-value\nEXTRA=local-value\n# OTHER=example-secret\r\n",
+      "unknown": "keep",
+      "expected": "KEY=private-value\r\n\nEXTRA=local-value\n# OTHER=example-secret\r\n",
+      "unknown_keys": ["EXTRA", "OTHER"]
+    },
+    {
+      "id": "no-final-newline",
+      "template": "KEY=default",
+      "local": "KEY=private-value\r\n",
+      "unknown": "keep",
+      "expected": "KEY=private-value",
+      "unknown_keys": []
+    },
+    {
+      "id": "no-final-newline-with-unknown",
+      "template": "KEY=default",
+      "local": "KEY=private-value\nEXTRA=local-value",
+      "unknown": "keep",
+      "expected": "KEY=private-value\n\nEXTRA=local-value",
+      "unknown_keys": ["EXTRA"]
+    },
+    {
+      "id": "template-already-has-blank-separator",
+      "template": "KEY=default\r\n\r\n",
+      "local": "KEY=private-value\nEXTRA=local-value",
+      "unknown": "keep",
+      "expected": "KEY=private-value\r\n\r\nEXTRA=local-value",
+      "unknown_keys": ["EXTRA"]
+    },
+    {
+      "id": "empty-and-quoted-empty-values",
+      "template": "EMPTY=default\nexport EXPORTED=default\nSINGLE=default\nDOUBLE=default\n",
+      "local": "EMPTY=\nEXPORTED=\nSINGLE=''\nDOUBLE=\"\"\n",
+      "unknown": "keep",
+      "expected": "EMPTY=\nexport EXPORTED=\nSINGLE=''\nDOUBLE=\"\"\n",
+      "unknown_keys": []
+    },
+    {
+      "id": "unicode-and-lf-only-splitting",
+      "template": "# 데이터베이스 설정\nMESSAGE=default\nEMOJI=default\nSEPARATOR=default\n",
+      "local": "EMOJI=\"🚀\"\nMESSAGE=\"안녕하세요\"\nSEPARATOR=local-value\u2028private-value\n",
+      "unknown": "keep",
+      "expected": "# 데이터베이스 설정\nMESSAGE=\"안녕하세요\"\nEMOJI=\"🚀\"\nSEPARATOR=local-value\u2028private-value\n",
+      "unknown_keys": []
+    },
+    {
+      "id": "continuation-validation-boundaries",
+      "template": "EVEN=default\nTRAILING=default\n# COMMENTED=default\n",
+      "local": "EVEN=local-value\\\\\nTRAILING=local-value\\ \n# COMMENTED=private-value\\\n",
+      "unknown": "keep",
+      "expected": "EVEN=local-value\\\\\nTRAILING=local-value\\ \n# COMMENTED=private-value\\\n",
+      "unknown_keys": []
+    },
+    {
+      "id": "quote-validation-is-not-shell-parsing",
+      "template": "KEY=default\n",
+      "local": "KEY=\"local-value\"trailing-text\n",
+      "unknown": "keep",
+      "expected": "KEY=\"local-value\"trailing-text\n",
+      "unknown_keys": []
+    },
+    {
+      "id": "empty-template-unknowns-only",
+      "template": "",
+      "local": "# Local note\nZ=local-value\n# A=private-value",
+      "unknown": "keep",
+      "expected": "Z=local-value\n# A=private-value",
+      "unknown_keys": ["A", "Z"]
+    },
+    {
+      "id": "empty-inputs",
+      "template": "",
+      "local": "",
+      "unknown": "keep",
+      "expected": "",
+      "unknown_keys": []
+    },
+    {
+      "id": "bare-cr-is-not-a-physical-line-break",
+      "template": "KEY=default\r",
+      "local": "KEY=private-value\n",
+      "unknown": "keep",
+      "expected": "KEY=private-value\r",
+      "unknown_keys": []
+    },
+    {
+      "id": "mixed-template-endings-per-line",
+      "template": "FIRST=default\r\nSECOND=default\nTHIRD=default",
+      "local": "THIRD=example-secret\r\nSECOND=local-value\r\nFIRST=private-value\n",
+      "unknown": "keep",
+      "expected": "FIRST=private-value\r\nSECOND=local-value\nTHIRD=example-secret",
+      "unknown_keys": []
+    },
+    {
+      "id": "python-unicode-head-whitespace",
+      "template": "\u0085export KEY \t=default\n",
+      "local": "\u001cKEY=private-value\n",
+      "unknown": "keep",
+      "expected": "\u0085export KEY \t=private-value\n",
+      "unknown_keys": []
+    },
+    {
+      "id": "uncomment-removes-at-most-one-space",
+      "template": "  #  export KEY=default\n",
+      "local": "KEY=private-value\n",
+      "unknown": "keep",
+      "expected": "   export KEY=private-value\n",
+      "unknown_keys": []
+    },
+    {
+      "id": "object-property-names-are-ordinary-keys",
+      "template": "__proto__=default\nconstructor=default\n",
+      "local": "constructor=local-value\n__proto__=private-value\n",
+      "unknown": "keep",
+      "expected": "__proto__=private-value\nconstructor=local-value\n",
+      "unknown_keys": []
+    },
+    {
+      "id": "unvalidated-template-default-known-limitation",
+      "template": "KEY=\"example-secret\n",
+      "local": "",
+      "unknown": "keep",
+      "expected": "KEY=\"example-secret\n",
+      "unknown_keys": [],
+      "followup_error": {
+        "kind": "unsupported_local_syntax",
+        "lines": [1],
+        "message": "unsupported local syntax at lines 1; no changes were made"
+      }
+    }
+  ]
+}
