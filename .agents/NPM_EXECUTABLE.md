@@ -106,8 +106,12 @@ an equivalent comparison. Neither fix changes CLI business behavior.
 
 ## Status and limits
 
-Native Phase 2 validation is pending until observed on a pushed commit. CI
-configuration alone is not readiness. Artifacts have seven-day retention only.
+Native Phase 2 validation passed on pushed commit
+`0a94315de51ce2f1aa03f14c0270b81a4a1ef956`: baseline run `37473152261`,
+standalone run `37473152249`, and npm run `37473152242` (both supported OSes,
+Node 22/24/26). All six native consumer jobs passed; configuration alone was
+never treated as readiness. Any follow-up commit requires fresh full validation
+before readiness is declared. Artifacts have seven-day retention only.
 No package, tag or release publication is authorized: the reference workspace is
 private and the npm publisher also refuses this layout pending release automation.
 
