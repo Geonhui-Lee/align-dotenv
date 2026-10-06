@@ -1,6 +1,6 @@
 {
   "name": "align-dotenv",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "description": "Align dotenv files using the canonical standalone executable.",
   "type": "module",
   "license": "MIT",
@@ -13,7 +13,7 @@
   "files": ["bin/align-dotenv.js", "LICENSE"],
   "engines": { "node": ">=22" },
   "optionalDependencies": {
-    "@align-dotenv/linux-x64": "0.3.1",
-    "@align-dotenv/win32-x64": "0.3.1"
+    "@align-dotenv/linux-x64": "0.4.0",
+    "@align-dotenv/win32-x64": "0.4.0"
   }
 }

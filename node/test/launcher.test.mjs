@@ -7,12 +7,13 @@ import test from "node:test";
 import { check } from "./helpers.mjs";
 
 const source = await fs.readFile(new URL("../npm/bin/align-dotenv.js", import.meta.url), "utf8");
+const version = JSON.parse(await fs.readFile(new URL("../npm/package.json", import.meta.url), "utf8")).version;
 
 test("launcher: unsupported/missing/mismatched packages are safe; POSIX transport and signals", async (t) => {
   const root = await fs.mkdtemp(join(tmpdir(), "align-launcher-unit-"));
   try {
     await fs.mkdir(join(root, "bin"));
-    await fs.writeFile(join(root, "package.json"), JSON.stringify({ type: "module", version: "0.3.1" }));
+    await fs.writeFile(join(root, "package.json"), JSON.stringify({ type: "module", version }));
     const script = join(root, "bin/align-dotenv.js");
     const write = (target) => fs.writeFile(script, source.replace('`${process.platform}-${process.arch}`', JSON.stringify(target)));
     const run = (args = [], input = "") => new Promise((done, reject) => {
@@ -34,7 +35,7 @@ test("launcher: unsupported/missing/mismatched packages are safe; POSIX transpor
     await fs.mkdir(join(pkg, "bin"), { recursive: true });
     await fs.writeFile(join(pkg, "package.json"), JSON.stringify({ version: "9.9.9" }));
     check((await run()).code === 2, "mismatched version accepted");
-    await fs.writeFile(join(pkg, "package.json"), JSON.stringify({ version: "0.3.1" }));
+    await fs.writeFile(join(pkg, "package.json"), JSON.stringify({ version }));
     if (process.platform !== "win32") {
       const binary = join(pkg, "bin/align-dotenv");
       // Absolute node path avoids any synthetic child reliance on PATH.
