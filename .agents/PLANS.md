@@ -177,6 +177,16 @@
   the explicit v0.3.0 tag/release. No account changes, publication, tags or releases
   were performed. Both distributions' upload success must be verified before
   marking v0.3.0 released; they are not a cross-registry transaction.
+- Final preparation commit `c1ced078c6238ecd26572c4cdafd82d2b78e3921` pushed;
+  [CI 37424356302](https://github.com/Geonhui-Lee/align-dotenv/actions/runs/37424356302)
+  passed all four Ubuntu/Windows Node 22/24 entries, including version guard,
+  workspace, packed fresh installation and actual npm shim invocation. Python
+  3.10–3.14 and packaging passed. No CI failures/fixes.
+- Final local checks passed: 47 Python + compile/import, 378 Node workspace,
+  9 packed and 9 guard tests; intended 17-file 0.3.0 artifact inspected outside
+  checkout. No generated artifacts or dotenv files tracked; no value markers in
+  logs. `private: true` retained, npm opt-in variable unset, nothing published,
+  tagged or released. Status: **READY FOR FINAL RELEASE AUTHORIZATION**.
 
 ## Later ideas (not part of v0.2.0)
 

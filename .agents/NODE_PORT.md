@@ -492,3 +492,19 @@ Technical package status: **READY FOR NPM RELEASE** after actual required platfo
 validation. Pre-release metadata/workflows are prepared but publication remains
 protected. Retain private protection until separate final release authorization;
 do not publish, create release tags or mark either distribution published here.
+
+### Final preparation verification
+
+- Preparation commit `c1ced078c6238ecd26572c4cdafd82d2b78e3921` was pushed on the
+  same feature branch. [CI 37424356302](https://github.com/Geonhui-Lee/align-dotenv/actions/runs/37424356302)
+  passed again with synchronized `0.3.0` metadata: Ubuntu/22, Ubuntu/24,
+  Windows/22, Windows/24 (workspace, version guard and packed/shim steps), Python
+  3.10–3.14 and Python packaging. No CI failures or fixes were required.
+- Final WSL/Linux checks: 47 Python tests, compile/import smoke, 378 workspace
+  tests, 9 packed tests, 9 version-guard tests, all passed with no skips. Actual
+  `align-dotenv-0.3.0.tgz` has 17 intended files, 13,044 compressed bytes; artifact
+  remains outside the checkout. No dotenv-value markers were found in logs.
+- Python production files remain unchanged; package private guard remains true;
+  `ENABLE_NPM_PUBLISHING` is unset. No account setup, upload, tag or release occurred.
+- Status: **READY FOR FINAL RELEASE AUTHORIZATION**; this is readiness, not
+  authorization to publish or a claim of a completed v0.3.0 release.
