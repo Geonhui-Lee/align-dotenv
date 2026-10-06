@@ -2,6 +2,10 @@
 
 ## v0.4.0 release candidate
 
+See [publication-unblock checklist](.agents/RELEASE_UNBLOCK_V040.md) for current
+licensing evidence, account bootstrap and release-only environment requirements.
+Recovery dispatches must use the release tag ref, not a branch plus tag input.
+
 The active distribution version is 0.4.0; v0.3.x sections below are historical.
 See [release preparation](.agents/RELEASE_V040.md) for exact artifact selection,
 three-package npm ordering, immutable partial-publication recovery and external

@@ -1,5 +1,11 @@
 # v0.4.0 release candidate — NOT READY
 
+The follow-up [publication-unblock audit](RELEASE_UNBLOCK_V040.md) records actual
+native-library versions/imports, the precise PyInstaller exception, remaining
+notice/Windows entitlement gaps, staged npm bootstrap behavior, exact publisher
+identities and maintainer-only environment actions. Its evidence supersedes vague
+bootstrap alternatives below; it does not mark approvals complete.
+
 ## Entry evidence and version audit
 
 Phase 3 `7129bb5ce1070d03cabe9a29add466a72ec38b7a` was fast-forward merged into

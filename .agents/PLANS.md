@@ -2,6 +2,14 @@
 
 ## v0.4.0 release preparation
 
+Follow-up blocker characterization: `RELEASE_UNBLOCK_V040.md`. PyInstaller's
+bootloader exception does not require GPL/source disclosure for generated bundles;
+the embedded inspect hook has separate Apache terms. Actual copied Windows
+runtime entitlement and full incorporated-code notices remain unresolved.
+npm's documented staged placeholder is a possible account-side bootstrap, not
+authorization to mutate the registry. Required scope/publisher/environment
+confirmations remain human actions; all policy approvals stay false.
+
 Phase 3 `7129bb5` is fast-forward merged into develop. Post-merge baseline,
 standalone and full native npm gates passed (`37482798287`, `37482798195`,
 `37482798132`) before `release/v0.4.0` was created. Active Python/workspace/lock/
