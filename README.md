@@ -8,9 +8,39 @@ are kept by default. Unsupported local syntax causes a safe failure, not data lo
 
 ## Install
 
-Choose the ecosystem that fits your development tooling. Both distributions expose
-the same `align-dotenv` CLI; npm is a development-time tool, not a promised public
-JavaScript library API.
+`align-dotenv` is available for both Python and Node.js development workflows.
+Both distributions expose the same CLI behavior. The npm package is intended as a
+development-time CLI; a stable JavaScript library API is not currently promised.
+
+### Node.js / npm
+
+Node.js 22+ is supported.
+
+```bash
+npm install --save-dev align-dotenv
+```
+
+Run it directly:
+
+```bash
+npx align-dotenv
+npx align-dotenv --check
+```
+
+Or add project scripts:
+
+```json
+{
+  "scripts": {
+    "env:align": "align-dotenv",
+    "env:check": "align-dotenv --check"
+  }
+}
+```
+
+The Node.js release is tested on Linux/Ubuntu (including WSL) and Windows with
+Node.js 22 and 24. macOS is not currently part of the tested release matrix, but
+installation is not blocked.
 
 ### Python
 
@@ -23,46 +53,6 @@ pipx install align-dotenv
 # or
 python -m pip install align-dotenv
 ```
-
-For development from a checkout:
-
-```bash
-python -m pip install .
-# or
-uv tool install .
-```
-
-### Node.js / npm (prepared for v0.3.0; not yet published)
-
-Node 22+ is supported. Workspace and packed/fresh-consumer CLI tests pass on
-Linux/Ubuntu and Windows with Node 22 and 24. WSL is used for local Linux validation.
-macOS is not part of the tested Node release matrix; installation is not blocked.
-
-After separately authorized npm publication:
-
-```bash
-npm install --save-dev align-dotenv
-npx align-dotenv
-npx align-dotenv --check
-```
-
-Or add development scripts:
-
-```json
-{
-  "scripts": {
-    "env:align": "align-dotenv",
-    "env:check": "align-dotenv --check"
-  }
-}
-```
-
-The repository prepares synchronized Python/npm version `0.3.0`; neither
-distribution's 0.3.0 release has been published. npm is prepared with `private: false`
-for the maintainer's manual, interactive account + 2FA bootstrap. Automated npm
-publishing remains disabled for v0.3.0. See [node/README.md](node/README.md) for
-local tarball validation and Node-specific limitations. No stable JavaScript
-imports are offered initially.
 
 ## Use
 
@@ -78,7 +68,7 @@ align-dotenv .env --template .env.example --unknown error   # fail, listing key 
 
 ### Project mode
 
-Run without a target or template from the project root (the current working directory):
+Run without a target or template from the project root:
 
 ```bash
 align-dotenv
@@ -103,20 +93,24 @@ project/
 Only existing targets are aligned; templates with missing targets are skipped and
 reported, never used to create targets. If two templates map to the same target
 (such as `.env.example` and `.env.template`), the command fails without writing.
-Discovery is sorted by target path and skips `.git`, `node_modules`, `.venv`,
-`venv`, and `__pycache__` directories, as well as directory symlinks. Project
-mode validates and reconciles every pair in memory **before writing any target**;
-an invalid pair or `--unknown error` failure prevents all writes. After a
-successful preflight, changed files are replaced atomically one at a time (not
-as a cross-file transaction). Unchanged files are not rewritten.
 
-`--check` performs the same full preflight without writing: exit 0 means all
-existing targets are aligned, 1 means at least one needs alignment, and 2 means
-an invalid project state (including ambiguous mappings or unsupported syntax).
+Discovery is sorted by target path and skips `.git`, `node_modules`, `.venv`,
+`venv`, and `__pycache__` directories, as well as directory symlinks.
+
+Project mode validates and reconciles every pair in memory **before writing any
+target**. An invalid pair or `--unknown error` failure prevents all writes. After a
+successful preflight, changed files are replaced atomically one at a time; this is
+not a cross-file transaction. Unchanged files are not rewritten.
+
+`--check` performs the same full preflight without writing:
+
+- exit `0`: everything is aligned
+- exit `1`: at least one target needs alignment
+- exit `2`: invalid invocation, input, or project state
 
 ### Reconciliation
 
-For example, with `.env.example`:
+Given `.env.example`:
 
 ```dotenv
 # Required setting
@@ -141,37 +135,48 @@ REQUIRED=local
 OPTIONAL='local choice'
 ```
 
-`--check` never writes: exit 0 means aligned, 1 means a change is needed. Invalid
-inputs, unsupported syntax, and `--unknown error` with unknown keys exit 2.
+The template keeps control of layout while existing local values and active/commented
+state are preserved.
 
 ## Syntax and safety
 
-**Understand it, preserve it, or refuse to modify it.** The supported syntax is
-single-line `KEY=value`, `export KEY=value`, `# KEY=value`, and
-`# export KEY=value`, with keys matching `[A-Za-z_][A-Za-z0-9_]*`. Values are
-kept as raw text; this is not a full shell or dotenv parser. Unsupported meaningful
-local content (such as shell directives, line continuations, or unclosed quoted
-values) stops the operation without modifying the file. Errors show line numbers,
-not offending lines or values. Ordinary local comments and blank lines may be
-omitted because the template defines the layout. The final assignment wins if a
-key appears repeatedly.
+**Understand it, preserve it, or refuse to modify it.**
+
+Supported assignments are:
+
+- `KEY=value`
+- `export KEY=value`
+- `# KEY=value`
+- `# export KEY=value`
+
+Keys must match `[A-Za-z_][A-Za-z0-9_]*`. Values are preserved as raw text;
+`align-dotenv` is intentionally not a full shell or dotenv interpreter.
+
+Unsupported meaningful local content, such as shell directives, line continuations,
+or unclosed quoted values, stops the operation without modifying the file. Errors
+report safe metadata such as line numbers or unknown key names, not dotenv values.
 
 The existing target must be a regular file, not a symlink or the template itself.
-Known lines use the template's line endings and final newline; unknown lines kept
-by default retain their original representation, so mixed endings are possible.
-Changes replace the target atomically in its directory, preserve mode bits where meaningful
-(Windows does not reproduce POSIX permissions),
-and skip the write if already aligned.
+Known lines follow the template's line endings and final newline. Unknown assignments
+kept by default retain their original representation. Changes are replaced atomically
+within the target directory, mode bits are preserved where meaningful, and already
+aligned files are not rewritten.
 
-## Develop
+## Development
+
+Run the Python and Node.js suites from the repository root:
 
 ```bash
 PYTHONPATH=src python -m unittest discover -s tests -v
 python -m compileall -q src tests
+
 npm --prefix node ci
 npm --prefix node test
 npm --prefix node run test:package
+
 node scripts/check-versions.mjs
 ```
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for contributor guidance.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for contributor guidance and
+[node/README.md](node/README.md) for Node.js-specific implementation and packaging
+details.
