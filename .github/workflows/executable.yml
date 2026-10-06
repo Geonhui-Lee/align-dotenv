@@ -64,7 +64,8 @@ jobs:
           with tempfile.TemporaryDirectory() as directory:
               subprocess.run([str(artifact), '--help'], cwd=directory, check=True)
           metadata = dict(filename=artifact.name, bytes=len(data), sha256=hashlib.sha256(data).hexdigest(),
-              os=platform.system(), platform=platform.platform(), architecture='x86_64',
+               os=platform.system(), platform=platform.platform(), architecture='x64',
+               version=json.loads((artifact.parent / 'metadata.json').read_text())['version'],
               python=platform.python_version(), pyinstaller=PyInstaller.__version__,
               commit=os.environ['GITHUB_SHA'], libc=platform.libc_ver())
           text = json.dumps(metadata, indent=2) + '\n'

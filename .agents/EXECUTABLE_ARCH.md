@@ -1,5 +1,10 @@
 # v0.4.0 Phase 1: standalone executable foundation
 
+Phase 2 packaging/launcher work is documented in `NPM_EXECUTABLE.md`. Phase 1
+was fast-forwarded into `develop`; npm delegates semantics to the canonical
+Python executable in the development distribution. Native TypeScript remains
+temporary reference code; Composer remains future work.
+
 ## Decision and evidence boundary
 
 Select **PyInstaller one-file**, now validated by actual Linux x86_64 and

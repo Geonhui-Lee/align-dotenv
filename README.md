@@ -8,6 +8,13 @@ are kept by default. Unsupported local syntax causes a safe failure, not data lo
 
 ## Install
 
+> **Unreleased v0.4.0 direction:** Python is becoming the single behavioral
+> implementation. Development npm packages delegate to packaged executables
+> without requiring Python, initially Linux x86_64 (Ubuntu 24.04) and Windows
+> x86_64 (Server 2022). macOS/ARM and older glibc/musl support are not claimed.
+> Released v0.3.1 npm still uses native TypeScript. Composer is future work.
+> See [migration notes](.agents/NPM_EXECUTABLE.md).
+
 Packages: [npm](https://www.npmjs.com/package/align-dotenv) · [PyPI](https://pypi.org/project/align-dotenv/).
 
 `align-dotenv` is available for both Python and Node.js development workflows.

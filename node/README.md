@@ -1,5 +1,11 @@
 # align-dotenv
 
+> This private workspace retains the released v0.3.1 native TypeScript behavior
+> as a temporary migration reference. The unreleased executable-backed npm
+> distribution is defined in `npm/`; it contains no TypeScript dotenv semantics.
+> See the repository's `.agents/NPM_EXECUTABLE.md`. Native implementation removal
+> is deferred to Phase 3. The installation/support notes below describe v0.3.1.
+
 Keep local dotenv files aligned with their templates without losing local values.
 
 `align-dotenv` uses `.env*.example` and `.env*.template` files for structure while

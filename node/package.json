@@ -1,7 +1,7 @@
 {
   "name": "align-dotenv",
   "version": "0.3.1",
-  "private": false,
+  "private": true,
   "type": "module",
   "description": "Align local dotenv files with their templates while preserving existing values.",
   "license": "MIT",

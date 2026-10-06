@@ -1,5 +1,14 @@
 # Development plan
 
+## v0.4.0 Phase 2 tracking
+
+Phase 1 final commit `4158c96` is incorporated into `develop` by fast-forward;
+baseline CI passed in run `37455041075`. Phase 2 branch:
+`build/npm-executable-wrapper`. `node/npm/` uses optional `@align-dotenv/linux-x64`
+and `@align-dotenv/win32-x64` executable packages. `node/` is a private native
+TypeScript reference workspace, retained until Phase 3. Versions remain 0.3.1;
+nothing is published. Native Phase 2 validation is pending; see `NPM_EXECUTABLE.md`.
+
 ## Released milestones
 
 ### v0.1.0 — core CLI and safety

@@ -14,6 +14,11 @@ function versions(action, { python = "0.3.0", npm = "0.3.0", lock = "0.3.0", roo
     writeFileSync(join(root, "pyproject.toml"), `[project]\nname = "align-dotenv"\nversion = "${python}"\n\n[project.urls]\nversion = "ignored"\n`);
     writeFileSync(join(root, "node/package.json"), JSON.stringify({ name: "align-dotenv", version: npm }));
     writeFileSync(join(root, "node/package-lock.json"), JSON.stringify({ name: "align-dotenv", version: lock, packages: { "": { name: "align-dotenv", version: rootLock } } }));
+    mkdirSync(join(root, "node/npm/platforms/linux-x64"), { recursive: true });
+    mkdirSync(join(root, "node/npm/platforms/win32-x64"), { recursive: true });
+    writeFileSync(join(root, "node/npm/package.json"), JSON.stringify({ name: "align-dotenv", version: python,
+      optionalDependencies: { "@align-dotenv/linux-x64": python, "@align-dotenv/win32-x64": python } }));
+    for (const target of ["linux-x64", "win32-x64"]) writeFileSync(join(root, "node/npm/platforms", target, "package.json"), JSON.stringify({ name: `@align-dotenv/${target}`, version: python }));
     action(root);
   } finally { rmSync(root, { recursive: true, force: true }); }
 }
@@ -39,6 +44,19 @@ test("version guard: mismatched release tag fails", () => versions((root) => {
 test("version guard: malformed metadata never echoes raw payload", () => versions((root) => {
   writeFileSync(join(root, "node/package.json"), "example-secret");
   assert.throws(() => checkVersions(root), /^Error: cannot read version metadata$/);
+}));
+test("version guard: launcher version mismatch fails", () => versions((root) => {
+  writeFileSync(join(root, "node/npm/package.json"), JSON.stringify({ name: "align-dotenv", version: "9.9.9" }));
+  assert.throws(() => checkVersions(root), /npm launcher version/);
+}));
+test("version guard: platform version mismatch fails", () => versions((root) => {
+  writeFileSync(join(root, "node/npm/platforms/linux-x64/package.json"), JSON.stringify({ name: "@align-dotenv/linux-x64", version: "9.9.9" }));
+  assert.throws(() => checkVersions(root), /npm platform package versions/);
+}));
+test("version guard: optional dependency range must be exact", () => versions((root) => {
+  const main = { name: "align-dotenv", version: "0.3.0", optionalDependencies: { "@align-dotenv/linux-x64": "^0.3.0", "@align-dotenv/win32-x64": "0.3.0" } };
+  writeFileSync(join(root, "node/npm/package.json"), JSON.stringify(main));
+  assert.throws(() => checkVersions(root), /npm platform package versions/);
 }));
 test("version guard: release mode refuses a missing environment tag", () => {
   const env = { ...process.env }; delete env.RELEASE_TAG;

@@ -24,6 +24,18 @@ export function checkVersions(root = ROOT, tag) {
         manifest.name !== lock.name || manifest.name !== lock.packages?.[""]?.name) {
       throw new VersionValidationError("node/package-lock.json identity/version differs from node/package.json");
     }
+    {
+      const main = JSON.parse(readFileSync(join(root, "node/npm/package.json"), "utf8"));
+      if (main.name !== "align-dotenv" || main.version !== version) {
+        throw new VersionValidationError("npm launcher version/identity differs from Python");
+      }
+      for (const target of ["linux-x64", "win32-x64"]) {
+        const platform = JSON.parse(readFileSync(join(root, "node/npm/platforms", target, "package.json"), "utf8"));
+        if (platform.name !== `@align-dotenv/${target}` || platform.version !== version || main.optionalDependencies?.[platform.name] !== version) {
+          throw new VersionValidationError("npm platform package versions must match Python and exact optional dependencies");
+        }
+      }
+    }
     if (tag !== undefined && tag !== `v${version}`) {
       throw new VersionValidationError("release tag must equal v plus the synchronized Python/npm version");
     }

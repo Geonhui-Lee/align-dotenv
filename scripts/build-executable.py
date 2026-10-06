@@ -22,6 +22,8 @@ No other runtime dependencies. The package itself has none.
 """
 
 import argparse
+import hashlib
+import json
 import platform
 import shutil
 import subprocess
@@ -127,6 +129,21 @@ def build(root: Path, output_dir: Path) -> Path:
             dest.chmod(dest.stat().st_mode | 0o111)  # ensure executable bit
 
     print(f"  Built: {dest} ({dest.stat().st_size // 1024} KiB)")
+    import PyInstaller
+
+    commit = subprocess.check_output(
+        ["git", "rev-parse", "HEAD"], cwd=root, text=True
+    ).strip()
+    metadata = dict(
+        filename=dest.name, bytes=dest.stat().st_size,
+        sha256=hashlib.sha256(dest.read_bytes()).hexdigest(),
+        os=platform.system(), architecture=platform_suffix().split("-")[-1],
+        version=version, commit=commit, python=platform.python_version(),
+        pyinstaller=PyInstaller.__version__, libc=platform.libc_ver(),
+    )
+    (output_dir / "metadata.json").write_text(
+        json.dumps(metadata, indent=2) + "\n", encoding="utf-8"
+    )
     return dest
 
 

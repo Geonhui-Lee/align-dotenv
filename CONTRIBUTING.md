@@ -1,5 +1,16 @@
 # Contributing
 
+## Unreleased executable-backed npm migration
+
+`src/align_dotenv/` is canonical. `node/npm/` defines the thin launcher and two
+optional x64 executable packages. `node/` is now a private TypeScript reference
+workspace; existing port instructions below remain historical/reference notes.
+See [Phase 2 notes](.agents/NPM_EXECUTABLE.md) for fresh same-commit staging,
+tar allowlists, offline install/ci, no-Python proof and native CI. No binaries or
+tarballs belong in Git. Composer/macOS/ARM are not included; Linux portability
+is limited by the proven Ubuntu 24.04/glibc environment. Publication is blocked
+pending coordinated platform-package release automation.
+
 Use Python 3.10–3.14. For a local editable installation, create an environment
 and run `python -m pip install -e .` (or `uv pip install -e .` after activating it).
 No runtime dependencies are required.
