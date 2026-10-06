@@ -12,6 +12,7 @@ function versions(action, { python = "0.3.0", npm = "0.3.0", lock = "0.3.0", roo
   try {
     mkdirSync(join(root, "node"));
     writeFileSync(join(root, "pyproject.toml"), `[project]\nname = "align-dotenv"\nversion = "${python}"\n\n[project.urls]\nversion = "ignored"\n`);
+    writeFileSync(join(root, "release-policy.json"), JSON.stringify({ version: python }));
     writeFileSync(join(root, "node/package.json"), JSON.stringify({ name: "align-dotenv", version: npm }));
     writeFileSync(join(root, "node/package-lock.json"), JSON.stringify({ name: "align-dotenv", version: lock, packages: { "": { name: "align-dotenv", version: rootLock } } }));
     mkdirSync(join(root, "node/npm/platforms/linux-x64"), { recursive: true });
@@ -48,6 +49,10 @@ test("version guard: malformed metadata never echoes raw payload", () => version
 test("version guard: launcher version mismatch fails", () => versions((root) => {
   writeFileSync(join(root, "node/npm/package.json"), JSON.stringify({ name: "align-dotenv", version: "9.9.9" }));
   assert.throws(() => checkVersions(root), /npm launcher version/);
+}));
+test("version guard: release policy version mismatch fails", () => versions((root) => {
+  writeFileSync(join(root, "release-policy.json"), JSON.stringify({ version: "9.9.9" }));
+  assert.throws(() => checkVersions(root), /release policy version differs/);
 }));
 test("version guard: platform version mismatch fails", () => versions((root) => {
   writeFileSync(join(root, "node/npm/platforms/linux-x64/package.json"), JSON.stringify({ name: "@align-dotenv/linux-x64", version: "9.9.9" }));

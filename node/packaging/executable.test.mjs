@@ -45,7 +45,7 @@ function tarEntries(archive) {
     const size = parseInt(text(header.subarray(124, 136)).trim(), 8);
     check(Number.isSafeInteger(size) && size >= 0 && offset + 512 + size <= bytes.length, "invalid tar size");
     check(header[156] === 0 || header[156] === 48, "non-regular tar member");
-    check(name.startsWith("package/") && !name.split("/").includes("..") && !entries.has(name), "unsafe tar path");
+    check(name.startsWith("package/") && !name.split("/").includes("..") && !entries.has(name.slice(8)), "unsafe tar path");
     entries.set(name.slice(8), bytes.subarray(offset + 512, offset + 512 + size));
     offset += 512 + Math.ceil(size / 512) * 512;
   }
@@ -109,7 +109,7 @@ test("executable-backed npm: real packed consumer and three-way parity", { skip:
         await fs.mkdir(join(staging, "tarballs"), { recursive: true });
         await fs.copyFile(path, join(staging, "tarballs", report.filename));
         const entries = tarEntries(await fs.readFile(path));
-        const expected = name === "main" ? ["LICENSE", "package.json", "bin/align-dotenv.js"] : ["LICENSE", "package.json", "metadata.json", `bin/${filename}`];
+        const expected = name === "main" ? ["LICENSE", "package.json", "bin/align-dotenv.js"] : ["LICENSE", "THIRD_PARTY_NOTICES.md", "package.json", "metadata.json", `bin/${filename}`];
         check(JSON.stringify([...entries.keys()].sort()) === JSON.stringify(expected.sort()), "npm tar allowlist mismatch");
         check(entries.get("LICENSE").equals(await fs.readFile(join(root, "LICENSE"))), "license mismatch");
         const manifest = JSON.parse(entries.get("package.json"));
@@ -118,6 +118,7 @@ test("executable-backed npm: real packed consumer and three-way parity", { skip:
           check(manifest.alignDotenvBuild?.version === manifest.version && manifest.alignDotenvBuild?.sourceCommit === execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).trim(), "launcher source/version identity mismatch");
         }
         if (name !== "main") {
+          check(entries.get("THIRD_PARTY_NOTICES.md").equals(await fs.readFile(join(root, "THIRD_PARTY_NOTICES.md"))), "third-party notice mismatch");
           const metadata = JSON.parse(entries.get("metadata.json"));
           const bytes = entries.get(`bin/${filename}`);
           check(bytes.equals(await fs.readFile(executable)), "npm binary differs from built executable");
@@ -135,9 +136,10 @@ test("executable-backed npm: real packed consumer and three-way parity", { skip:
       }
       const entries = tarEntries(await fs.readFile(otherTarball));
       const otherFilename = other === "linux-x64" ? "align-dotenv" : "align-dotenv.exe";
-      const expected = ["LICENSE", "package.json", "metadata.json", `bin/${otherFilename}`].sort();
+      const expected = ["LICENSE", "THIRD_PARTY_NOTICES.md", "package.json", "metadata.json", `bin/${otherFilename}`].sort();
       check(JSON.stringify([...entries.keys()].sort()) === JSON.stringify(expected), "foreign platform tar allowlist mismatch");
       check(entries.get("LICENSE").equals(await fs.readFile(join(root, "LICENSE"))), "foreign license mismatch");
+      check(entries.get("THIRD_PARTY_NOTICES.md").equals(await fs.readFile(join(root, "THIRD_PARTY_NOTICES.md"))), "foreign third-party notice mismatch");
       const manifest = JSON.parse(entries.get("package.json")), metadata = JSON.parse(entries.get("metadata.json"));
       check(!manifest.scripts, "foreign package contains install scripts");
       const bytes = entries.get(`bin/${otherFilename}`);

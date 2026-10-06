@@ -35,12 +35,16 @@ def main():
             continue
         assert not any(marker in marshal.dumps(code) for marker in encoded), "module path/fixture leak"
         if name.startswith("align_dotenv"):
+            source = (root / "src").joinpath(*name.split(".")).with_suffix(".py")
+            if not source.is_file():
+                source = (root / "src").joinpath(*name.split(".")) / "__init__.py"
+            assert code == compile(source.read_bytes(), code.co_filename, "exec", optimize=0), "embedded canonical source mismatch"
             pending = [code]
             while pending:
                 current = pending.pop()
                 assert not os.path.isabs(current.co_filename), "absolute canonical source path"
                 pending.extend(value for value in current.co_consts if isinstance(value, CodeType))
-    print("Unpacked executable archive and modules: no known fixture values or personal/checkout paths")
+    print("Unpacked executable archive and modules: canonical code matches; no known fixture values or personal/checkout paths")
 
 
 if __name__ == "__main__":

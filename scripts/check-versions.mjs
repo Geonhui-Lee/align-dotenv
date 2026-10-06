@@ -24,6 +24,8 @@ export function checkVersions(root = ROOT, tag) {
         manifest.name !== lock.name || manifest.name !== lock.packages?.[""]?.name) {
       throw new VersionValidationError("node/package-lock.json identity/version differs from node/package.json");
     }
+    const policy = JSON.parse(readFileSync(join(root, "release-policy.json"), "utf8"));
+    if (policy.version !== version) throw new VersionValidationError("release policy version differs from Python/npm");
     {
       const main = JSON.parse(readFileSync(join(root, "node/npm/package.json"), "utf8"));
       if (main.name !== "align-dotenv" || main.version !== version) {

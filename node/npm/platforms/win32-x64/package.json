@@ -5,5 +5,6 @@
   "license": "MIT",
   "os": ["win32"],
   "cpu": ["x64"],
-  "files": ["bin/align-dotenv.exe", "metadata.json", "LICENSE"]
+  "repository": { "type": "git", "url": "git+https://github.com/Geonhui-Lee/align-dotenv.git", "directory": "node/npm/platforms/win32-x64" },
+  "files": ["bin/align-dotenv.exe", "metadata.json", "LICENSE", "THIRD_PARTY_NOTICES.md"]
 }

@@ -150,6 +150,8 @@ def build(root: Path, output_dir: Path) -> Path:
     (output_dir / "metadata.json").write_text(
         json.dumps(metadata, indent=2) + "\n", encoding="utf-8"
     )
+    for notice in ("LICENSE", "THIRD_PARTY_NOTICES.md"):
+        shutil.copyfile(root / notice, output_dir / notice)
     return dest
 
 
