@@ -6,6 +6,7 @@ import { tmpdir, homedir } from "node:os";
 import { join, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { gunzipSync } from "node:zlib";
+import { createServer } from "node:http";
 import test from "node:test";
 import { check, loadCases, inputBytes } from "../test/helpers.mjs";
 import { fingerprint } from "../test/file-helpers.mjs";
@@ -19,7 +20,8 @@ const executable = process.env.ALIGN_DOTENV_EXE;
 
 async function run(command, args, cwd, env = process.env) {
   return new Promise((done, reject) => {
-    const child = spawn(command, args, { cwd, env, shell: false, windowsHide: true, timeout: 120000 });
+    const child = spawn(command, args, { cwd, env, shell: false, windowsHide: true,
+      windowsVerbatimArguments: process.platform === "win32" && command === process.env.ComSpec, timeout: 120000 });
     const stdout = [], stderr = [];
     child.stdout.on("data", (data) => stdout.push(data));
     child.stderr.on("data", (data) => stderr.push(data));
@@ -61,7 +63,8 @@ test("executable-backed npm: real packed consumer and four-way parity", { skip: 
     await fs.copyFile(executable, standalone); await fs.chmod(standalone, 0o755);
     const node = join(tools, process.platform === "win32" ? "node.exe" : "node");
     await fs.copyFile(process.execPath, node); await fs.chmod(node, 0o755);
-    const env = { ...process.env, PATH: process.platform === "win32" ? `${tools};${process.env.SystemRoot}\\System32;${process.env.SystemRoot}` : tools,
+    // Even Windows system directories can contain py.exe; cmd.exe is absolute.
+    const env = { ...process.env, PATH: tools,
       PYTHONHOME: join(temporary, "missing-python"), PYTHONPATH: join(temporary, "missing-modules"),
       npm_config_cache: cache, npm_config_offline: "true", npm_config_audit: "false", npm_config_fund: "false", npm_config_update_notifier: "false" };
     for (const key of Object.keys(env)) {
@@ -104,6 +107,42 @@ test("executable-backed npm: real packed consumer and four-way parity", { skip: 
       }
     });
     await fs.writeFile(join(consumer, "package.json"), JSON.stringify({ name: "offline-consumer", private: true, scripts: { align: "align-dotenv" } }));
+    await t.test("normal registry install selects optional OS/CPU package; cached lockfile ci is offline", async () => {
+      const directory = join(temporary, "local registry consumer"); await fs.mkdir(directory);
+      await fs.writeFile(join(directory, "package.json"), '{"private":true}');
+      const main = JSON.parse(await fs.readFile(join(staging, "main/package.json"), "utf8"));
+      const platform = JSON.parse(await fs.readFile(join(staging, target, "package.json"), "utf8"));
+      const other = target === "linux-x64" ? "win32-x64" : "linux-x64";
+      const opposite = JSON.parse(await fs.readFile(join(root, "node/npm/platforms", other, "package.json"), "utf8"));
+      let forbiddenFetch = false, url;
+      const server = createServer((request, response) => {
+        const path = decodeURIComponent(request.url.split("?")[0]);
+        if (path === "/main.tgz" || path === "/native.tgz") {
+          fs.readFile(path === "/main.tgz" ? paths[0] : paths[1]).then((bytes) => { response.end(bytes); }, () => { response.statusCode = 500; response.end(); });
+          return;
+        }
+        if (path === "/incompatible.tgz") forbiddenFetch = true;
+        const manifest = [main, platform, opposite].find((item) => path === `/${item.name}`);
+        if (!manifest) { response.statusCode = 404; response.end(); return; }
+        const filename = manifest === main ? "main.tgz" : manifest === platform ? "native.tgz" : "incompatible.tgz";
+        response.setHeader("Content-Type", "application/json");
+        response.end(JSON.stringify({ name: manifest.name, "dist-tags": { latest: manifest.version },
+          versions: { [manifest.version]: { ...manifest, dist: { tarball: `${url}/${filename}` } } } }));
+      });
+      await new Promise((done) => server.listen(0, "127.0.0.1", done));
+      url = `http://127.0.0.1:${server.address().port}`;
+      try {
+        const result = await npm(directory, ["install", "--offline=false", "--registry", url, "--save-dev", `align-dotenv@${main.version}`]);
+        check(result.code === 0 && !forbiddenFetch, "npm optional platform selection failed");
+        await fs.access(join(directory, "node_modules/@align-dotenv", target));
+        check(!(await fs.readdir(join(directory, "node_modules/@align-dotenv"))).includes(other), "incompatible package installed");
+      } finally { await new Promise((done) => server.close(done)); }
+      await fs.rm(join(directory, "node_modules"), { recursive: true, force: true });
+      check((await npm(directory, ["ci", "--offline"])).code === 0, "registry lockfile offline ci failed");
+      const result = await npm(directory, ["exec", "--offline", "--no", "--", "align-dotenv", "--help"]);
+      check(result.code === 0, "normal-registry installed wrapper failed");
+    });
+    let consumerReady = false;
     await t.test("offline normal install, lockfile, clean npm ci and no-Python tools", async () => {
       for (const command of ["python", "python3", "py"]) {
         const found = await new Promise((done) => {
@@ -119,7 +158,9 @@ test("executable-backed npm: real packed consumer and four-way parity", { skip: 
       check((await npm(consumer, ["ci"])).code === 0, "offline npm ci failed");
       check(!(await fs.lstat(join(consumer, "node_modules/align-dotenv"))).isSymbolicLink(), "package must not link to checkout");
       check((await fs.readdir(join(consumer, "node_modules/align-dotenv"))).sort().join() === ["LICENSE", "bin", "package.json"].sort().join(), "source present in consumer");
+      consumerReady = true;
     });
+    check(consumerReady, "consumer setup failed; dependent scenarios cannot run");
     const script = (args = []) => npm(consumer, ["--silent", "run", "align", "--", ...args]);
     const wrapper = (args = []) => run(node, [join(consumer, "node_modules/align-dotenv/bin/align-dotenv.js"), ...args], consumer, env);
     const put = async (local, template = "# Heading\nKEY=default\n") => {
@@ -212,13 +253,13 @@ test("executable-backed npm: real packed consumer and four-way parity", { skip: 
       };
       await compare(setup, ["--check"], 1, "KEY=private-value\n");
       await compare(setup, [], 0, "# Heading\nKEY=private-value\n");
-      for (const engine of engines) {
-        await setup(true);
-        const before = await fingerprint(join(consumer, ".env"));
-        const result = await engine([]); safe(result);
-        check(result.code === 2 && before === await fingerprint(join(consumer, ".env")), "late preflight wrote earlier file");
-      }
+      await compare(() => setup(true), [], 2, "KEY=private-value\n");
       await fs.rm(nested, { recursive: true, force: true });
+      for (const policy of ["keep", "remove", "error"]) {
+        const setupUnknown = () => put("KEY=private-value\nEXTRA=example-secret\n", "KEY=default\n");
+        const expected = policy === "keep" ? "KEY=private-value\n\nEXTRA=example-secret\n" : policy === "remove" ? "KEY=private-value\n" : "KEY=private-value\nEXTRA=example-secret\n";
+        await compare(setupUnknown, ["--unknown", policy], policy === "error" ? 2 : 0, expected);
+      }
       await put("KEY=private-value\n");
       check((await script()).code === 0 && (await script(["--check"])).code === 0, "npm-script project flow failed");
     });

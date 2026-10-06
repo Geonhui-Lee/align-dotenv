@@ -107,6 +107,12 @@ def build(root: Path, output_dir: Path) -> Path:
             "--paths", str(root / "src"),
             str(entry),
         ]
+        if platform.system() == "Linux":
+            # Remove CPython/vendor DWARF build paths as well as debug bulk.
+            # Never strip PE binaries: PyInstaller does not recommend it there.
+            if shutil.which("strip") is None:
+                raise RuntimeError("Linux executable builds require binutils strip")
+            cmd.insert(-1, "--strip")
 
         print(f"  Running: {' '.join(cmd)}")
         result = subprocess.run(cmd, cwd=root)

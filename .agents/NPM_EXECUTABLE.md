@@ -36,6 +36,9 @@ records exact filename, size, digest, OS/architecture, project version, source
 commit and Python/PyInstaller versions. This is an integrity/build relationship,
 not a cryptographic attestation or runtime checksum verifier.
 
+Linux builds require binutils `strip` and use PyInstaller `--strip` to remove
+CPython/vendor DWARF build paths. Windows PE binaries are never stripped.
+
 Main tarball allowlist: `package.json`, `LICENSE`, `bin/align-dotenv.js`.
 Platform allowlist: `package.json`, `LICENSE`, `metadata.json`, and exactly one
 `bin/align-dotenv` or `bin/align-dotenv.exe`. Before installation, inspect actual
@@ -55,7 +58,7 @@ coordinated publication still require separate release preparation.
 
 `.github/workflows/npm-executable.yml` builds real same-commit executables on
 Ubuntu 24.04 x64 and Windows Server 2022 x64, with Node 22/24/26. External clean
-consumers use a copied Node runtime plus Windows system tools on PATH; python,
+consumers use only a copied Node runtime on PATH (cmd.exe is absolute); python,
 python3 and py must be inaccessible. PYTHONHOME/PYTHONPATH are invalid. Tests run
 actual npx, npm exec, scripts, Linux shim and Windows npm-generated `.cmd` shim.
 They cover offline install/ci, explicit/project/check/unknown policies, every
