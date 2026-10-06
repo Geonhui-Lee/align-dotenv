@@ -6,13 +6,77 @@ name: Publish to npm (protected)
 on:
   release:
     types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing published GitHub release tag to recover
+        required: true
+        type: string
+
+concurrency:
+  group: npm-publish-${{ github.event.release.tag_name || inputs.tag }}
+  cancel-in-progress: false
+
+env:
+  RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
 
 permissions:
   contents: read
 
 jobs:
+  guard:
+    if: vars.ENABLE_NPM_PUBLISHING == 'true'
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.release.outputs.tag }}
+      commit: ${{ steps.release.outputs.commit }}
+    steps:
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - name: Require an existing published release tag and unpublished npm version
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          const tag = process.env.RELEASE_TAG;
+          if (!/^v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.test(tag)) {
+            throw new Error('Input must be an existing stable vX.Y.Z release tag, not a branch or SHA');
+          }
+          const api = async (path) => {
+            const response = await fetch(`https://api.github.com/repos/${process.env.GITHUB_REPOSITORY}/${path}`, {
+              headers: { Authorization: `Bearer ${process.env.GH_TOKEN}`, Accept: 'application/vnd.github+json' },
+            });
+            if (!response.ok) throw new Error(`GitHub release/tag verification failed (HTTP ${response.status})`);
+            return response.json();
+          };
+          const release = await api(`releases/tags/${encodeURIComponent(tag)}`);
+          if (release.draft || !release.published_at || release.tag_name !== tag) {
+            throw new Error('An already-published GitHub Release is required for this exact tag');
+          }
+          let { object } = await api(`git/ref/tags/${encodeURIComponent(tag)}`);
+          for (let depth = 0; object.type === 'tag' && depth < 8; depth++) {
+            ({ object } = await api(`git/tags/${object.sha}`));
+          }
+          if (object.type !== 'commit' || !/^[a-f0-9]{40}$/.test(object.sha)) {
+            throw new Error('Release tag must resolve to a commit');
+          }
+          // Recovery must never change the already-published v0.3.1 source.
+          if (tag === 'v0.3.1' && object.sha !== 'e0464574ac621eb80b2b1048a1c1b3608ca6346d') {
+            throw new Error('Immutable v0.3.1 release commit mismatch');
+          }
+          const npm = await fetch(`https://registry.npmjs.org/align-dotenv/${tag.slice(1)}`);
+          if (npm.status === 200) throw new Error('npm version already exists; publication is forbidden');
+          if (npm.status !== 404) throw new Error(`Cannot verify unpublished npm version (HTTP ${npm.status})`);
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `tag=${tag}\ncommit=${object.sha}\n`);
+          console.log(`Verified published GitHub Release ${tag}, source ${object.sha}, and absent npm version`);
+          JS
+
   validate:
-    if: vars.ENABLE_NPM_PUBLISHING == 'true' && startsWith(github.event.release.tag_name, 'v')
+    needs: guard
     strategy:
       fail-fast: false
       matrix:
@@ -22,13 +86,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.release.tag_name }}
-      - uses: actions/setup-node@v4
+          ref: refs/tags/${{ needs.guard.outputs.tag }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v7
         with:
           node-version: ${{ matrix.node-version }}
-      - name: Verify tag and synchronized versions
+          package-manager-cache: false
+      - name: Verify immutable release source
         env:
-          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          EXPECTED_COMMIT: ${{ needs.guard.outputs.commit }}
+        run: |
+          node --input-type=module -e 'import {execFileSync} from "node:child_process"; for (const ref of ["HEAD", `refs/tags/${process.env.RELEASE_TAG}^{commit}`]) { const sha=execFileSync("git",["rev-parse",ref],{encoding:"utf8"}).trim(); console.log(`${ref}: ${sha}`); if (sha!==process.env.EXPECTED_COMMIT) throw new Error("Release source identity mismatch"); }'
+      - name: Verify tag and synchronized versions
         run: node scripts/check-versions.mjs --release
       - name: Workspace tests
         working-directory: node
@@ -40,7 +109,7 @@ jobs:
         run: npm run test:package
 
   publish:
-    needs: validate
+    needs: [guard, validate]
     runs-on: ubuntu-latest
     environment:
       name: npm
@@ -54,24 +123,34 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.release.tag_name }}
-      - uses: actions/setup-node@v4
+          ref: refs/tags/${{ needs.guard.outputs.tag }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v7
         with:
           node-version: '24'
-          registry-url: https://registry.npmjs.org
-      - name: Verify synchronized release versions and private protection
+          package-manager-cache: false
+      - name: Verify immutable release source
         env:
-          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          EXPECTED_COMMIT: ${{ needs.guard.outputs.commit }}
+        run: |
+          node --input-type=module -e 'import {execFileSync} from "node:child_process"; for (const ref of ["HEAD", `refs/tags/${process.env.RELEASE_TAG}^{commit}`]) { const sha=execFileSync("git",["rev-parse",ref],{encoding:"utf8"}).trim(); console.log(`${ref}: ${sha}`); if (sha!==process.env.EXPECTED_COMMIT) throw new Error("Release source identity mismatch"); }'
+      - name: Verify synchronized release versions and private protection
         run: |
           node ../scripts/check-versions.mjs --release
           node --input-type=module -e 'import fs from "node:fs"; if (JSON.parse(fs.readFileSync("package.json")).private !== false) throw new Error("npm publication requires explicitly authorized private:false");'
       - name: Verify supported Trusted Publishing npm CLI
         run: |
           node --input-type=module -e 'import {execFileSync} from "node:child_process"; const v=execFileSync("npm",["--version"], {encoding:"utf8"}); const [a,b,c]=v.trim().split(".").map(Number); if (!(a>11 || a===11 && (b>5 || b===5 && c>=1))) throw new Error("Trusted Publishing requires npm >=11.5.1");'
+      - name: Verify default registry and token-free environment
+        run: |
+          node --input-type=module -e 'import {execFileSync} from "node:child_process"; const registry=execFileSync("npm",["config","get","registry"],{encoding:"utf8"}).trim(); console.log(`npm registry: ${registry}`); if (registry!=="https://registry.npmjs.org/") throw new Error("Unexpected npm registry"); for (const key of ["NODE_AUTH_TOKEN","NPM_TOKEN"]) if (process.env[key]) throw new Error("Publication must use OIDC, not npm tokens");'
       - run: npm ci
       - run: npm run build
       - run: npm test
       - run: npm run test:package
+      - name: Recheck version is absent immediately before publication
+        run: |
+          node --input-type=module -e 'const response=await fetch(`https://registry.npmjs.org/align-dotenv/${process.env.RELEASE_TAG.slice(1)}`); if (response.status===200) throw new Error("npm version already exists; refusing duplicate publication"); if (response.status!==404) throw new Error("Cannot verify unpublished npm version");'
       # OIDC only; no NODE_AUTH_TOKEN / long-lived access token.
       - name: Publish with provenance after separate authorization
         run: npm publish --provenance --access public
