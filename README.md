@@ -8,6 +8,8 @@ are kept by default. Unsupported local syntax causes a safe failure, not data lo
 
 ## Install
 
+Packages: [npm](https://www.npmjs.com/package/align-dotenv) · [PyPI](https://pypi.org/project/align-dotenv/).
+
 `align-dotenv` is available for both Python and Node.js development workflows.
 Both distributions expose the same CLI behavior. The npm package is intended as a
 development-time CLI; a stable JavaScript library API is not currently promised.
