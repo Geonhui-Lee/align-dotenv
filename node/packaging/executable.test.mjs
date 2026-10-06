@@ -83,12 +83,18 @@ test("executable-backed npm: real packed consumer and four-way parity", { skip: 
     // Even Windows system directories can contain py.exe; cmd.exe is absolute.
     const env = { ...process.env, PATH: tools,
       PYTHONHOME: join(temporary, "missing-python"), PYTHONPATH: join(temporary, "missing-modules"),
+      npm_config_script_shell: process.platform === "win32" ? process.env.ComSpec : "/bin/sh",
       npm_config_cache: cache, npm_config_offline: "true", npm_config_audit: "false", npm_config_fund: "false", npm_config_update_notifier: "false" };
     for (const key of Object.keys(env)) {
       if (key.toLowerCase() === "path" && key !== "PATH") delete env[key];
     }
     delete env.npm_config_package; delete env.npm_config_call;
     const npm = (cwd, args) => run(node, [npmCli, ...args], cwd, env);
+    const npmOk = (result, message) => {
+      const code = result.stderr.match(/npm (?:error|ERR!) code ([A-Z0-9_]+)/)?.[1] ?? "unclassified";
+      const lock = result.stderr.includes("Missing:") ? "missing-lock-entry" : result.stderr.includes("Invalid:") ? "invalid-lock-entry" : "";
+      check(result.code === 0, `${message}; npm ${code} ${lock}`);
+    };
     const npxCli = join(dirname(npmCli), "npx-cli.js");
     const paths = [];
     const filename = target === "linux-x64" ? "align-dotenv" : "align-dotenv.exe";
@@ -175,7 +181,7 @@ test("executable-backed npm: real packed consumer and four-way parity", { skip: 
       const lock = JSON.parse(await fs.readFile(join(consumer, "package-lock.json"), "utf8"));
       check(lock.packages[`node_modules/@align-dotenv/${target}`]?.version, "platform missing from lockfile");
       await fs.rm(join(consumer, "node_modules"), { recursive: true, force: true });
-      check((await npm(consumer, ["ci"])).code === 0, "offline npm ci failed");
+      npmOk(await npm(consumer, ["ci"]), "offline npm ci failed");
       check(!(await fs.lstat(join(consumer, "node_modules/align-dotenv"))).isSymbolicLink(), "package must not link to checkout");
       check((await fs.readdir(join(consumer, "node_modules/align-dotenv"))).sort().join() === ["LICENSE", "bin", "package.json"].sort().join(), "source present in consumer");
       consumerReady = true;
@@ -327,17 +333,6 @@ test("executable-backed npm: real packed consumer and four-way parity", { skip: 
       try {
         const result = await wrapper([".env", "--template", ".env.example"]); safe(result);
         check(result.code === 2 && result.stderr === "align-dotenv: cannot read or update files; check paths and permissions.\n", "replacement failure diagnostic mismatch");
-        check(before === await fingerprint(file), "replacement failure altered original");
-        check(!(await fs.readdir(consumer)).some((name) => name.startsWith(".align-dotenv-")), "replacement failure leaked temporary");
-      } finally {
-        if (locker) {
-          const closed = new Promise((done) => locker.once("exit", done));
-          locker.stdin.end("release\n"); await closed;
-        } else { await fs.chmod(consumer, 0o700); }
-      }
-    });
-    await t.test("omitted platform and missing executable fail safely with exit 2", async () => {
-      const omittedConsumer = j", "replacement failure diagnostic mismatch");
         check(before === await fingerprint(file), "replacement failure altered original");
         check(!(await fs.readdir(consumer)).some((name) => name.startsWith(".align-dotenv-")), "replacement failure leaked temporary");
       } finally {
