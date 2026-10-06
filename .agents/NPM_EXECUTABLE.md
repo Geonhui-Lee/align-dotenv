@@ -52,16 +52,25 @@ compressed strings. No fixtures, source, caches or build workdirs are shipped.
 
 ## npm behavior and gates
 
-For unpublished offline tests, install the main and matching platform tarball
-together. The local exact-version package satisfies the optional dependency
-without a registry entry. Consumers generate lockfiles, remove node_modules and
-run offline `npm ci` with an isolated cache. Optional omission is permitted by
+For unpublished offline tests, provide the main tarball and **both** real
+platform tarballs. Consumer `overrides` map the two optional package names to
+their local `file:` tarballs; install the main tarball with `--save-dev`. npm
+selects only the compatible executable but records both packages' metadata in
+the lockfile. The overrides remain consumer-only; published manifests still pin
+exact synchronized versions. This avoids npm 11's missing-lock-entry error when
+the incompatible optional package has no offline registry metadata. No lockfile
+is hand-edited, no protection is forced, and no optional dependency is bypassed.
+Consumers remove node_modules and run ordinary offline `npm ci` with an isolated
+cache. Normal registry install independently uses automatic optional selection
+without overrides, followed by offline cached `npm ci`. Optional omission is permitted by
 npm but invocation must fail clearly. At release time publish both platform
 packages before the main package. Scope ownership, new Trusted Publishers and
 coordinated publication still require separate release preparation.
 
-`.github/workflows/npm-executable.yml` builds real same-commit executables on
-Ubuntu 24.04 x64 and Windows Server 2022 x64, with Node 22/24/26. External clean
+`.github/workflows/npm-executable.yml` first builds, validates and packs real
+same-commit executables natively on Ubuntu 24.04 x64 and Windows Server 2022 x64.
+Six consumer jobs (both OSes, Node 22/24/26) receive both genuine tarballs from
+those jobs; no fake opposite-platform package is used. External clean
 consumers use only a copied Node runtime on PATH (cmd.exe is absolute); python,
 python3 and py must be inaccessible. PYTHONHOME/PYTHONPATH are invalid. Tests run
 actual npx, npm exec, scripts, Linux shim and Windows npm-generated `.cmd` shim.
@@ -79,9 +88,17 @@ paragraph and parser usage/error grammar can differ; the wrapper must match the
 executable exactly, not recreate historical help in JavaScript.
 
 Run `npm run test:package` in `node/` with ALIGN_DOTENV_NPM_STAGE,
-ALIGN_DOTENV_EXE and ALIGN_DOTENV_PYTHON set to fresh staging/build/interpreter.
+ALIGN_DOTENV_EXE and ALIGN_DOTENV_PYTHON set to fresh staging/build/interpreter,
+and ALIGN_DOTENV_NPM_OTHER_TARBALL set to the genuine other-platform tarball.
 Without staging, the native npm gate explicitly skips; this is never native proof.
 Local WSL ARM64 cannot validate either x64 distribution.
+
+npx tests invoke the literal public `npx align-dotenv --help`/`--check` contract;
+offline operation is enforced by npm configuration. The shorthand `--no` before
+the command incorrectly makes npx handle `--help` as npm help. Canonical-source
+help uses `align-dotenv.exe` as argv[0] on Windows, matching the packaged filename
+before argparse wraps/indents usage; post-format name substitution alone is not
+an equivalent comparison. Neither fix changes CLI business behavior.
 
 ## Status and limits
 

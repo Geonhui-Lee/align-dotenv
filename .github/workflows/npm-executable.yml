@@ -8,12 +8,11 @@ permissions:
   contents: read
 
 jobs:
-  npm-executable:
+  native-package:
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-24.04, windows-2022]
-        node: ['22', '24', '26']
     runs-on: ${{ matrix.os }}
     env:
       PYTHONUTF8: '1'
@@ -25,7 +24,7 @@ jobs:
           architecture: x64
       - uses: actions/setup-node@v4
         with:
-          node-version: ${{ matrix.node }}
+          node-version: '24'
       - name: Install clean native build dependencies
         run: |
           python -m pip install -r scripts/requirements-executable.txt
@@ -54,6 +53,85 @@ jobs:
         run: |
           import os, subprocess, sys
           subprocess.run([sys.executable, 'scripts/audit-executable.py', os.environ['ALIGN_DOTENV_EXE']], check=True)
+      - name: Stage same-commit allowlisted npm packages
+        run: node scripts/pack-npm.mjs dist/executable dist/npm
+      - name: Prepare native tarball output
+        shell: python
+        run: |
+          from pathlib import Path
+          Path('dist/npm/tarballs').mkdir()
+      - name: Pack main launcher
+        run: npm pack ./dist/npm/main --json --pack-destination dist/npm/tarballs
+      - name: Pack Linux platform package
+        if: runner.os == 'Linux'
+        run: npm pack ./dist/npm/linux-x64 --json --pack-destination dist/npm/tarballs
+      - name: Pack Windows platform package
+        if: runner.os == 'Windows'
+        run: npm pack ./dist/npm/win32-x64 --json --pack-destination dist/npm/tarballs
+      - name: Retain same-commit native binaries and tarballs for consumer jobs
+        uses: actions/upload-artifact@v4
+        with:
+          name: npm-native-${{ matrix.os }}-${{ github.sha }}
+          path: |
+            dist/executable/*
+            dist/npm/tarballs/*
+          if-no-files-found: error
+          retention-days: 7
+
+  npm-executable:
+    needs: native-package
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-2022]
+        node: ['22', '24', '26']
+    runs-on: ${{ matrix.os }}
+    env:
+      PYTHONUTF8: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13.15'
+          architecture: x64
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: npm-native-ubuntu-24.04-${{ github.sha }}
+          path: dist/native-linux
+      - uses: actions/download-artifact@v4
+        with:
+          name: npm-native-windows-2022-${{ github.sha }}
+          path: dist/native-windows
+      - name: Install canonical source for differential reference only
+        run: python -m pip install .
+      - name: Select native executable and genuine opposite-platform tarball
+        shell: python
+        run: |
+          import json, os, shutil, sys
+          from pathlib import Path
+          own = 'windows' if sys.platform == 'win32' else 'linux'
+          other = 'linux' if own == 'windows' else 'windows'
+          target = 'linux-x64' if other == 'linux' else 'win32-x64'
+          directory = Path(f'dist/native-{own}/executable').resolve()
+          metadata = json.loads((directory / 'metadata.json').read_text())
+          output = Path('dist/executable').resolve()
+          output.mkdir()
+          for filename in (metadata['filename'], 'metadata.json'):
+              shutil.copy2(directory / filename, output / filename)
+          directory = output
+          tarballs = list(Path(f'dist/native-{other}/npm/tarballs').glob(f'align-dotenv-{target}-*.tgz'))
+          assert len(tarballs) == 1, 'Require one real opposite-platform package'
+          artifact = directory / metadata['filename']
+          if sys.platform != 'win32':
+              artifact.chmod(0o755)
+          with open(os.environ['GITHUB_ENV'], 'a', encoding='utf-8') as stream:
+              stream.write(f'ALIGN_DOTENV_EXE={artifact}\n')
+              stream.write(f'ALIGN_DOTENV_PYTHON={sys.executable}\n')
+              stream.write(f'ALIGN_DOTENV_NPM_STAGE={Path("dist/npm").resolve()}\n')
+              stream.write(f'ALIGN_DOTENV_NPM_OTHER_TARBALL={tarballs[0].resolve()}\n')
       - name: Install TypeScript reference development tools
         working-directory: node
         run: npm ci
@@ -74,7 +152,6 @@ jobs:
         with:
           name: npm-executable-${{ matrix.os }}-node${{ matrix.node }}-${{ github.sha }}
           path: |
-            dist/executable/*
             dist/npm/**
           if-no-files-found: error
           retention-days: 7

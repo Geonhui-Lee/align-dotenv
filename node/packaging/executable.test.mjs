@@ -17,6 +17,7 @@ const target = `${process.platform}-${process.arch}`;
 const npmCli = process.env.npm_execpath;
 const python = process.env.ALIGN_DOTENV_PYTHON;
 const executable = process.env.ALIGN_DOTENV_EXE;
+const otherTarball = process.env.ALIGN_DOTENV_NPM_OTHER_TARBALL;
 
 async function run(command, args, cwd, env = process.env) {
   return new Promise((done, reject) => {
@@ -53,7 +54,7 @@ function tarEntries(archive) {
 
 test("executable-backed npm: real packed consumer and four-way parity", { skip: !staging, timeout: 900000 }, async (t) => {
   check(["linux-x64", "win32-x64"].includes(target), "native x64 target required");
-  check(python && executable && npmCli, "real build/Python/npm locations required");
+  check(python && executable && npmCli && otherTarball, "real build/Python/npm/both platform tarball locations required");
   const temporary = await fs.mkdtemp(join(tmpdir(), "align-npm-executable-"));
   try {
     check(!resolve(temporary).startsWith(resolve(root) + "/"), "consumer must be outside checkout");
@@ -98,6 +99,7 @@ test("executable-backed npm: real packed consumer and four-way parity", { skip: 
     const npxCli = join(dirname(npmCli), "npx-cli.js");
     const paths = [];
     const filename = target === "linux-x64" ? "align-dotenv" : "align-dotenv.exe";
+    const other = target === "linux-x64" ? "win32-x64" : "linux-x64";
     await t.test("tarball allowlists, metadata/integrity and payload scan before installation", async () => {
       for (const name of ["main", target]) {
         const result = await npm(join(staging, name), ["pack", "--json", "--pack-destination", temporary]);
@@ -131,10 +133,33 @@ test("executable-backed npm: real packed consumer and four-way parity", { skip: 
           check(!/npm_[A-Za-z0-9]{36,}|gh[pousr]_[A-Za-z0-9]{20,}|-----BEGIN [A-Z ]*PRIVATE KEY/.test(content), "credential-like content");
         }
       }
+      const entries = tarEntries(await fs.readFile(otherTarball));
+      const otherFilename = other === "linux-x64" ? "align-dotenv" : "align-dotenv.exe";
+      const expected = ["LICENSE", "package.json", "metadata.json", `bin/${otherFilename}`].sort();
+      check(JSON.stringify([...entries.keys()].sort()) === JSON.stringify(expected), "foreign platform tar allowlist mismatch");
+      check(entries.get("LICENSE").equals(await fs.readFile(join(root, "LICENSE"))), "foreign license mismatch");
+      const manifest = JSON.parse(entries.get("package.json")), metadata = JSON.parse(entries.get("metadata.json"));
+      check(!manifest.scripts, "foreign package contains install scripts");
+      const bytes = entries.get(`bin/${otherFilename}`);
+      check(manifest.name === `@align-dotenv/${other}` && manifest.os[0] === other.split("-")[0] && manifest.cpu[0] === "x64", "foreign selectors mismatch");
+      check(metadata.version === manifest.version && metadata.version === JSON.parse(await fs.readFile(join(staging, "main/package.json"))).version, "foreign version mismatch");
+      check(metadata.commit === execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).trim(), "foreign source mismatch");
+      check(metadata.bytes === bytes.length && metadata.sha256 === createHash("sha256").update(bytes).digest("hex"), "foreign integrity mismatch");
+      for (const content of entries.values()) {
+        for (const marker of [root, homedir(), "private-value", "example-secret", "local-value"]) check(!content.toString("utf8").includes(marker), "foreign packed path/value leak");
+        check(!/npm_[A-Za-z0-9]{36,}|gh[pousr]_[A-Za-z0-9]{20,}|-----BEGIN [A-Z ]*PRIVATE KEY/.test(content.toString("utf8")), "foreign credential-like content");
+      }
+      const path = join(temporary, `align-dotenv-${other}-${manifest.version}.tgz`);
+      await fs.copyFile(otherTarball, path); paths.push(path);
+      await fs.copyFile(path, join(staging, "tarballs", `align-dotenv-${other}-${manifest.version}.tgz`));
     });
-    await fs.writeFile(join(consumer, "package.json"), JSON.stringify({ name: "offline-consumer", private: true, scripts: { align: "align-dotenv" } }));
+    // npm 11 needs metadata for both optional dependencies in a reproducible
+    // offline lockfile, even though the incompatible package is never installed.
+    await fs.writeFile(join(consumer, "package.json"), JSON.stringify({ name: "offline-consumer", private: true, scripts: { align: "align-dotenv" },
+      overrides: { [`@align-dotenv/${target}`]: `file:${paths[1].replaceAll("\\", "/")}`, [`@align-dotenv/${other}`]: `file:${paths[2].replaceAll("\\", "/")}` } }));
     await t.test("normal registry install selects optional OS/CPU package; cached lockfile ci is offline", async () => {
       const directory = join(temporary, "local registry consumer"); await fs.mkdir(directory);
+      const registryNpm = (args) => npm(directory, ["--cache", join(temporary, "registry-cache"), ...args]);
       await fs.writeFile(join(directory, "package.json"), '{"private":true}');
       const main = JSON.parse(await fs.readFile(join(staging, "main/package.json"), "utf8"));
       const platform = JSON.parse(await fs.readFile(join(staging, target, "package.json"), "utf8"));
@@ -158,14 +183,14 @@ test("executable-backed npm: real packed consumer and four-way parity", { skip: 
       await new Promise((done) => server.listen(0, "127.0.0.1", done));
       url = `http://127.0.0.1:${server.address().port}`;
       try {
-        const result = await npm(directory, ["install", "--offline=false", "--registry", url, "--save-dev", `align-dotenv@${main.version}`]);
+        const result = await registryNpm(["install", "--offline=false", "--registry", url, "--save-dev", `align-dotenv@${main.version}`]);
         check(result.code === 0 && !forbiddenFetch, "npm optional platform selection failed");
         await fs.access(join(directory, "node_modules/@align-dotenv", target));
         check(!(await fs.readdir(join(directory, "node_modules/@align-dotenv"))).includes(other), "incompatible package installed");
       } finally { await new Promise((done) => server.close(done)); }
       await fs.rm(join(directory, "node_modules"), { recursive: true, force: true });
-      check((await npm(directory, ["ci", "--offline"])).code === 0, "registry lockfile offline ci failed");
-      const result = await npm(directory, ["exec", "--offline", "--no", "--", "align-dotenv", "--help"]);
+      check((await registryNpm(["ci", "--offline"])).code === 0, "registry lockfile offline ci failed");
+      const result = await registryNpm(["exec", "--offline", "--no", "--", "align-dotenv", "--help"]);
       check(result.code === 0, "normal-registry installed wrapper failed");
     });
     let consumerReady = false;
@@ -177,11 +202,13 @@ test("executable-backed npm: real packed consumer and four-way parity", { skip: 
         });
         check(!found, "Python unexpectedly accessible on consumer PATH");
       }
-      check((await npm(consumer, ["install", "--save-dev", ...paths])).code === 0, "offline packed installation failed");
+      check((await npm(consumer, ["install", "--save-dev", paths[0]])).code === 0, "offline packed installation failed");
       const lock = JSON.parse(await fs.readFile(join(consumer, "package-lock.json"), "utf8"));
       check(lock.packages[`node_modules/@align-dotenv/${target}`]?.version, "platform missing from lockfile");
+      check(lock.packages[`node_modules/@align-dotenv/${other}`]?.version, "foreign metadata missing from offline lockfile");
       await fs.rm(join(consumer, "node_modules"), { recursive: true, force: true });
       npmOk(await npm(consumer, ["ci"]), "offline npm ci failed");
+      check(!(await fs.readdir(join(consumer, "node_modules/@align-dotenv"))).includes(other), "offline ci installed incompatible platform");
       check(!(await fs.lstat(join(consumer, "node_modules/align-dotenv"))).isSymbolicLink(), "package must not link to checkout");
       check((await fs.readdir(join(consumer, "node_modules/align-dotenv"))).sort().join() === ["LICENSE", "bin", "package.json"].sort().join(), "source present in consumer");
       consumerReady = true;
@@ -199,12 +226,12 @@ test("executable-backed npm: real packed consumer and four-way parity", { skip: 
     };
     await t.test("real npx, npm exec, npm script and Windows generated .cmd shim", async () => {
       const help = await run(standalone, ["--help"], consumer, env);
-      for (const result of [await run(node, [npxCli, "--offline", "--no", "align-dotenv", "--help"], consumer, env),
+      for (const result of [await run(node, [npxCli, "align-dotenv", "--help"], consumer, env),
         await npm(consumer, ["exec", "--offline", "--no", "--", "align-dotenv", "--help"]), await script(["--help"])]) {
         check(JSON.stringify(result) === JSON.stringify(help), "npm invocation help mismatch");
       }
       await put("KEY=private-value\n");
-      const checked = await run(node, [npxCli, "--offline", "--no", "align-dotenv", "--check"], consumer, env);
+      const checked = await run(node, [npxCli, "align-dotenv", "--check"], consumer, env);
       check(checked.code === 1, "npx check exit not preserved"); safe(checked);
       const shim = join(consumer, "node_modules/.bin", process.platform === "win32" ? "align-dotenv.cmd" : "align-dotenv");
       await fs.access(shim);
@@ -220,7 +247,7 @@ test("executable-backed npm: real packed consumer and four-way parity", { skip: 
     const engines = [
       (args) => run(process.execPath, [join(root, "node/dist/bin.js"), ...args], consumer),
       // Fix only argv[0] so argparse usage names match the installed command.
-      (args) => run(python, ["-c", "import sys; from align_dotenv.cli import main; sys.argv[0] = 'align-dotenv'; sys.exit(main())", ...args], consumer, { ...process.env, PYTHONPATH: join(root, "src"), PYTHONUTF8: "1" }),
+      (args) => run(python, ["-c", "import sys; from align_dotenv.cli import main; sys.argv[0] = sys.argv.pop(1); sys.exit(main())", filename, ...args], consumer, { ...process.env, PYTHONPATH: join(root, "src"), PYTHONUTF8: "1" }),
       (args) => run(standalone, args, consumer, env), wrapper,
     ];
     await t.test("four-way help and argument parsing (documented presentation differences)", async () => {
