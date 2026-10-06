@@ -1,13 +1,23 @@
 # Development plan
 
-## v0.4.0 Phase 2 tracking
+## v0.4.0 Phase 3 tracking
+
+Phase 2 final commit `c75f86e` is fast-forward merged into `develop`; baseline,
+standalone and all six native npm jobs passed there (`37478221320`, `37478221414`,
+`37478221291`) before `build/retire-native-typescript` was created. Phase 3 removes
+only native TypeScript implementation/reference tooling; canonical Python,
+executable-backed npm and native safety/fixture gates remain. See `PHASE3.md`.
+Completion requires fresh full validation on the final retirement commit.
+Versions remain 0.3.1; no publication, tags, releases or Composer work.
+
+## v0.4.0 Phase 2 tracking (completed)
 
 Phase 1 final commit `4158c96` is incorporated into `develop` by fast-forward;
 baseline CI passed in run `37455041075`. Phase 2 branch:
 `build/npm-executable-wrapper`. `node/npm/` uses optional `@align-dotenv/linux-x64`
 and `@align-dotenv/win32-x64` executable packages. `node/` is a private native
 TypeScript reference workspace, retained until Phase 3. Versions remain 0.3.1;
-nothing is published. Native Phase 2 validation is pending; see `NPM_EXECUTABLE.md`.
+nothing is published. Native Phase 2 validation passed; see `NPM_EXECUTABLE.md`.
 
 ## Released milestones
 

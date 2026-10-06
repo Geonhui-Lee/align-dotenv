@@ -54,7 +54,7 @@ jobs:
         run: node ../scripts/check-versions.mjs
       - name: Test version guard
         run: node --test ../scripts/check-versions.test.mjs
-      - name: Workspace tests
+      - name: Launcher transport and safe-failure tests
         run: npm test
       - name: Packed artifact and installed npm-bin tests
         run: npm run test:package

@@ -138,11 +138,11 @@ jobs:
         run: |
           node ../scripts/check-versions.mjs --release
           node --input-type=module -e 'import fs from "node:fs"; if (JSON.parse(fs.readFileSync("package.json")).private !== false) throw new Error("npm publication requires explicitly authorized private:false");'
-      # Phase 2 has no platform-package publication authorization or release automation.
-      # The retained TypeScript workspace is private; never publish it as the wrapper.
+      # No platform-package publication authorization or release automation.
+      # The validation workspace is private; never publish it as the wrapper.
       - name: Refuse migration publication until platform release automation is reviewed
         run: |
-          node --input-type=module -e 'import fs from "node:fs"; if (fs.existsSync("npm/package.json")) throw new Error("Executable-backed npm publication is not enabled in Phase 2");'
+          node --input-type=module -e 'import fs from "node:fs"; if (fs.existsSync("npm/package.json")) throw new Error("Executable-backed npm publication is not enabled");'
       - name: Verify supported Trusted Publishing npm CLI
         run: |
           node --input-type=module -e 'import {execFileSync} from "node:child_process"; const v=execFileSync("npm",["--version"], {encoding:"utf8"}); const [a,b,c]=v.trim().split(".").map(Number); if (!(a>11 || a===11 && (b>5 || b===5 && c>=1))) throw new Error("Trusted Publishing requires npm >=11.5.1");'
@@ -150,7 +150,6 @@ jobs:
         run: |
           node --input-type=module -e 'import {execFileSync} from "node:child_process"; const registry=execFileSync("npm",["config","get","registry"],{encoding:"utf8"}).trim(); console.log(`npm registry: ${registry}`); if (registry!=="https://registry.npmjs.org/") throw new Error("Unexpected npm registry"); for (const key of ["NODE_AUTH_TOKEN","NPM_TOKEN"]) if (process.env[key]) throw new Error("Publication must use OIDC, not npm tokens");'
       - run: npm ci
-      - run: npm run build
       - run: npm test
       - run: npm run test:package
       - name: Recheck version is absent immediately before publication

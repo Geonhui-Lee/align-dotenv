@@ -1,7 +1,5 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { UnsupportedLocalSyntaxError } from "../dist/parser.js";
-import { UnknownKeysError } from "../dist/reconcile.js";
 
 // Assert booleans, never payloads: failed tests must not echo dotenv contents.
 export function check(condition, message) {
@@ -25,30 +23,4 @@ export function loadCases(group) {
 
 export function inputBytes(item, name) {
   return name in item ? Buffer.from(item[name], "utf8") : Buffer.from(item[`${name}_hex`], "hex");
-}
-
-export function safeCall(action) {
-  try {
-    return action();
-  } catch {
-    throw new Error("unexpected core failure (payload redacted)");
-  }
-}
-
-export function expectCoreError(action, expected) {
-  let caught;
-  try {
-    action();
-  } catch (error) {
-    caught = error;
-  }
-  const type = expected.kind === "unsupported_local_syntax"
-    ? UnsupportedLocalSyntaxError : UnknownKeysError;
-  check(caught instanceof type, "error type mismatch");
-  check(caught.message === expected.message, "error message mismatch");
-  const property = expected.kind === "unsupported_local_syntax" ? "lines" : "keys";
-  check(JSON.stringify(caught[property]) === JSON.stringify(expected[property]),
-    "error metadata mismatch");
-  check(caught.name === type.name, "error name mismatch");
-  return caught;
 }

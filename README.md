@@ -8,11 +8,12 @@ are kept by default. Unsupported local syntax causes a safe failure, not data lo
 
 ## Install
 
-> **Unreleased v0.4.0 direction:** Python is becoming the single behavioral
+> **Unreleased v0.4.0 direction:** Python is the single behavioral
 > implementation. Development npm packages delegate to packaged executables
 > without requiring Python, initially Linux x86_64 (Ubuntu 24.04) and Windows
 > x86_64 (Server 2022). macOS/ARM and older glibc/musl support are not claimed.
-> Released v0.3.1 npm still uses native TypeScript. Composer is future work.
+> The development tree no longer contains the native TypeScript implementation.
+> Released v0.3.1 npm is unchanged. Composer is future work.
 > See [migration notes](.agents/NPM_EXECUTABLE.md).
 
 Packages: [npm](https://www.npmjs.com/package/align-dotenv) · [PyPI](https://pypi.org/project/align-dotenv/).
@@ -185,6 +186,11 @@ npm --prefix node run test:package
 
 node scripts/check-versions.mjs
 ```
+
+The local npm workspace has no compiler or dependencies. `test:package` requires
+fresh native artifacts and staging to run; without them it explicitly skips.
+The full native CI matrix supplies both real platform tarballs and proves npm
+installation, Python-free consumers, shims and three-way fixture parity.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for contributor guidance and
 [node/README.md](node/README.md) for Node.js-specific implementation and packaging

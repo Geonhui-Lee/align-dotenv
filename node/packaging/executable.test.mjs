@@ -52,7 +52,7 @@ function tarEntries(archive) {
   return entries;
 }
 
-test("executable-backed npm: real packed consumer and four-way parity", { skip: !staging, timeout: 900000 }, async (t) => {
+test("executable-backed npm: real packed consumer and three-way parity", { skip: !staging, timeout: 900000 }, async (t) => {
   check(["linux-x64", "win32-x64"].includes(target), "native x64 target required");
   check(python && executable && npmCli && otherTarball, "real build/Python/npm/both platform tarball locations required");
   const temporary = await fs.mkdtemp(join(tmpdir(), "align-npm-executable-"));
@@ -246,12 +246,11 @@ test("executable-backed npm: real packed consumer and four-way parity", { skip: 
       }
     });
     const engines = [
-      (args) => run(process.execPath, [join(root, "node/dist/bin.js"), ...args], consumer),
       // Fix only argv[0] so argparse usage names match the installed command.
       (args) => run(python, ["-c", "import sys; from align_dotenv.cli import main; sys.argv[0] = sys.argv.pop(1); sys.exit(main())", filename, ...args], consumer, { ...process.env, PYTHONPATH: join(root, "src"), PYTHONUTF8: "1" }),
       (args) => run(standalone, args, consumer, env), wrapper,
     ];
-    await t.test("four-way help and argument parsing (documented presentation differences)", async () => {
+    await t.test("three-way help and argument parsing", async () => {
       const help = [];
       for (const engine of engines) {
         const result = await engine(["--help"]);
@@ -259,8 +258,7 @@ test("executable-backed npm: real packed consumer and four-way parity", { skip: 
         for (const option of ["--template", "--unknown", "--check", "target"]) check(result.stdout.includes(option), "help option missing");
         help.push(result.stdout.replaceAll("align-dotenv.exe", "align-dotenv"));
       }
-      check(help[1] === help[2] && help[2] === help[3], "canonical help mismatch");
-      check(help[0].includes("Without target/--template"), "historical reference help changed");
+      check(help[0] === help[1] && help[1] === help[2], "canonical help mismatch");
       for (const args of [["--unknown", "bad"], ["--template"], ["--unexpected"], ["a", "b"], [".env"]]) {
         for (const engine of engines) {
           const result = await engine(args);
@@ -283,7 +281,7 @@ test("executable-backed npm: real packed consumer and four-way parity", { skip: 
       }
       for (const result of results.slice(1)) check(JSON.stringify(result) === JSON.stringify(results[0]), "differential stdout/stderr mismatch");
     }
-    await t.test("four-way all reconciliation fixtures: exact bytes, check/no-write and CLI output", async () => {
+    await t.test("three-way all reconciliation fixtures: exact bytes, check/no-write and CLI output", async () => {
       for (const item of loadCases("reconciliation")) {
         const local = inputBytes(item, "local"), template = inputBytes(item, "template");
         const setup = () => put(local, template);
@@ -292,13 +290,17 @@ test("executable-backed npm: real packed consumer and four-way parity", { skip: 
         await compare(setup, args, 0, item.expected);
       }
     });
-    await t.test("four-way invalid fixtures: UTF-8, syntax and unknown errors remain safe", async () => {
+    await t.test("three-way invalid fixtures: UTF-8, syntax and unknown errors remain safe", async () => {
       for (const item of loadCases("invalid")) {
         const local = inputBytes(item, "local"), template = inputBytes(item, "template");
-        await compare(() => put(local, template), [".env", "--template", ".env.example", "--unknown", item.policies[0]], 2, local);
+        for (const policy of item.policies) {
+          const args = [".env", "--template", ".env.example", "--unknown", policy];
+          await compare(() => put(local, template), args, 2, local);
+          await compare(() => put(local, template), [...args, "--check"], 2, local);
+        }
       }
     });
-    await t.test("four-way project and late preflight with no earlier writes", async () => {
+    await t.test("three-way project and late preflight with no earlier writes", async () => {
       const nested = join(consumer, "nested folder"); await fs.mkdir(nested);
       const setup = async (bad = false) => {
         await put("KEY=private-value\n");

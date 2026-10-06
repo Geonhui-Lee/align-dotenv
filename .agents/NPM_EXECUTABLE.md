@@ -1,5 +1,10 @@
 # v0.4.0 Phase 2 — executable-backed npm
 
+Phase 2 evidence below is historical. Phase 3 retires the TypeScript reference;
+see [PHASE3.md](PHASE3.md) for entry gates and removal scope. Current native parity
+uses Python source, standalone and installed wrapper only; all packaged safety
+gates remain, and invalid fixtures cover every policy in normal/check modes.
+
 ## Boundary and layout
 
 Phase 1 final commit `4158c96e29eb609b32331057ab4aa1c1f45ca7c6` was fast-forwarded
@@ -8,8 +13,8 @@ into `develop`. Its develop baseline passed in
 Phase 2 branch: `build/npm-executable-wrapper`. Versions remain **0.3.1** until
 release preparation; unreleased tarballs must not overwrite the existing release.
 
-- `node/`: private TypeScript reference/development workspace, retaining all
-  production source and tests. Its packed test is a historical reference gate.
+- `node/`: private dependency-free launcher/integration test workspace. The former
+  TypeScript implementation and reference-only packed gate are retired in Phase 3.
 - `node/npm/`: real `align-dotenv` distribution: JavaScript launcher, no dotenv
   business logic, and exact-version optional dependencies.
 - `node/npm/platforms/linux-x64/`: `@align-dotenv/linux-x64` (`os: linux`, `cpu: x64`).
@@ -81,10 +86,12 @@ actual npx, npm exec, scripts, Linux shim and Windows npm-generated `.cmd` shim.
 They cover offline install/ci, explicit/project/check/unknown policies, every
 shared fixture, redacted errors, links, native modes, no-write and late preflight.
 The 24 existing artifact tests retain atomic replacement, cleanup and Windows
-locked-target coverage. The complete native TypeScript reference gates remain.
+locked-target coverage. The native TypeScript reference gates passed in Phase 2
+and are retired in Phase 3.
 
-Four-way comparisons use TypeScript CLI, canonical Python CLI, standalone and
-installed npm wrapper. File bytes and safe domain outputs match exactly; only
+Phase 2 four-way comparisons used TypeScript CLI, canonical Python CLI, standalone
+and installed npm wrapper. Current three-way comparisons retain the latter three.
+File bytes and safe domain outputs match exactly; only
 terminal CRLF translation is normalized. Source argv[0] and a byte-identical
 standalone copy use the public command name to avoid artifact-name usage changes.
 Python owns help/argparse presentation. Historical TypeScript help adds a project
@@ -115,7 +122,7 @@ before readiness is declared. Artifacts have seven-day retention only.
 No package, tag or release publication is authorized: the reference workspace is
 private and the npm publisher also refuses this layout pending release automation.
 
-Composer and TypeScript retirement are future work. macOS, Linux ARM64, Windows
+Composer is future work; TypeScript retirement is Phase 3. macOS, Linux ARM64, Windows
 ARM64, musl and older Linux are not claimed. Ubuntu 24.04 uses glibc 2.39 and
 bundled Python requires GLIBC_2.38. Signing/AV, extraction restrictions,
 third-party notices and reproducible/attested release builds remain concerns.

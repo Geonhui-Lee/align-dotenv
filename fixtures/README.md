@@ -1,7 +1,7 @@
 # Shared behavioral fixtures (schema version 1)
 
 These are reviewed examples of Python v0.2.0 behavior, not generated expectations.
-All values are fictitious. Both runtimes must consume these same files; do not
+All values are fictitious. Python, standalone and npm consumers use these same files; do not
 regenerate expected output from the implementation being tested.
 
 - `reconciliation/cases.json`: successful reconciliation, including raw values,
@@ -39,14 +39,12 @@ platform newlines; this does not permit normalizing dotenv file bytes.
 Repeated alignment must not rewrite unchanged files. Test diagnostics should use
 case IDs, not dump input/output payloads or subprocess output on failure.
 
-`tests/test_fixtures.py` is the Python consumer. `node/test/fixtures.test.mjs` is
-the pure Node consumer for all 34 string-level cases. `node/test/file-fixtures.test.mjs`
-exercises all 36 cases through real files, including the 2 invalid-UTF-8 byte cases
-under every listed policy with and without check mode. No byte cases remain deferred.
-`node/test/project-fixtures.test.mjs` exercises the same 36 cases through project
-planning/application, with invalid cases placed after a valid pair to verify full
-preflight prevents earlier writes. No separate Node/project content corpus exists.
-Existing focused filesystem and project tests remain authoritative for safety
-scenarios (links, failure cleanup, permissions, discovery and preflight);
-JSON does not pretend to model OS races or
-mocked failures. See `.agents/NODE_PORT.md` for the audit and future port sequence.
+`tests/test_fixtures.py` is the canonical Python consumer. `tests/test_executable.py`
+proves actual standalone artifacts, including fixture and project preflight behavior.
+`node/packaging/executable.test.mjs` compares Python source, standalone and installed
+npm wrapper across all 36 cases with exact bytes, diagnostics and write/no-write
+checks. Invalid cases cover every listed policy in normal and check modes.
+Focused Python, executable and installed-wrapper tests remain authoritative for
+links, failure cleanup, permissions, discovery and preflight. JSON does not pretend
+to model OS races or mocked failures. The retired TypeScript consumers remain in
+normal Git history; `.agents/NODE_PORT.md` records their historical audit.

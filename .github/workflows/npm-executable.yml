@@ -132,19 +132,19 @@ jobs:
               stream.write(f'ALIGN_DOTENV_PYTHON={sys.executable}\n')
               stream.write(f'ALIGN_DOTENV_NPM_STAGE={Path("dist/npm").resolve()}\n')
               stream.write(f'ALIGN_DOTENV_NPM_OTHER_TARBALL={tarballs[0].resolve()}\n')
-      - name: Install TypeScript reference development tools
+      - name: Install dependency-free npm validation workspace
         working-directory: node
         run: npm ci
       - name: Synchronized versions and guard tests
         run: |
           node scripts/check-versions.mjs
           node --test scripts/check-versions.test.mjs
-      - name: Retained native reference and launcher unit tests
+      - name: Launcher transport and safe-failure unit tests
         working-directory: node
         run: npm test
       - name: Stage same-commit allowlisted npm packages
         run: node scripts/pack-npm.mjs dist/executable dist/npm
-      - name: Real npm tarballs, offline install/ci, no-Python consumer and differential proof
+      - name: Real npm tarballs, offline install/ci, no-Python consumer and three-way differential proof
         working-directory: node
         run: npm run test:package
       - name: Retain executable metadata and staged packages for inspection only

@@ -3,8 +3,8 @@
 ## Unreleased executable-backed npm migration
 
 `src/align_dotenv/` is canonical. `node/npm/` defines the thin launcher and two
-optional x64 executable packages. `node/` is now a private TypeScript reference
-workspace; existing port instructions below remain historical/reference notes.
+optional x64 executable packages. `node/` is a private, dependency-free validation
+workspace; the TypeScript implementation and reference-only tooling are retired.
 See [Phase 2 notes](.agents/NPM_EXECUTABLE.md) for fresh same-commit staging,
 tar allowlists, offline install/ci, no-Python proof and native CI. No binaries or
 tarballs belong in Git. Composer/macOS/ARM are not included; Linux portability
@@ -28,42 +28,43 @@ remain idempotent. If local syntax cannot be safely understood or preserved,
 reject it instead of silently dropping it. Never use actual secrets in fixtures,
 logs, or issue reports, and do not print dotenv values in errors.
 
-Shared Python/Node parity cases live in [`fixtures/`](fixtures/README.md).
+Shared Python/executable/npm parity cases live in [`fixtures/`](fixtures/README.md).
 Keep expected bytes and safe errors runtime-neutral; use case IDs rather than
-payloads in assertion diagnostics. The porting contract and next-phase scope are
-documented in [`.agents/NODE_PORT.md`](.agents/NODE_PORT.md).
+payloads in assertion diagnostics. Historical port evidence is in
+[`.agents/NODE_PORT.md`](.agents/NODE_PORT.md); retirement is in
+[`.agents/PHASE3.md`](.agents/PHASE3.md).
 
-For the functionally complete Node implementation (Node 22+, npm package root `node/`):
+For launcher tests (Node 22+, distribution manifests in `node/npm/`):
 
 ```bash
 npm --prefix node ci
-npm --prefix node run build
 npm --prefix node test
 npm --prefix node run test:package
 ```
 
 See [`node/README.md`](node/README.md) for CLI usage and safety limitations.
-Python and npm are both published distributions; Python v0.2.0 was the behavioral
-reference for the native Node port. Neither runtime has production dependencies.
-`test:package` packs the artifact,
+Published npm v0.3.1 remains immutable. The development npm package delegates to
+canonical Python executables and has no fallback or JavaScript dotenv API.
+With fresh staging and both native tarballs configured, `test:package` packs the artifact,
 inspects its actual contents, installs it offline into a fresh external consumer,
 then tests npm's generated bin/shim through scripts and npm exec. Do not replace
-this gate with tests invoking repository `dist/bin.js` directly. Tarballs are
+this gate with repository-only invocation. Without staging the native gate skips;
+that is not native proof. Tarballs are
 generated in owned temporary directories, cleaned afterward and ignored by git.
 
-Node CI covers Ubuntu and Windows on Node 22 and 24. WSL local results validate
-Linux only. macOS is not in the tested release matrix; do not add an npm `os`
-restriction merely to reflect CI scope. Keep the package-local MIT license equal
-to the root LICENSE. Only compiled JS/declarations, README, LICENSE and package.json
-may ship; sources/tests/shared fixtures/planning files must stay out of the tarball.
+Native npm CI covers Ubuntu 24.04 x64 and Windows Server 2022 x64 on Node 22/24/26.
+WSL ARM64 cannot prove either x64 artifact. Keep the package-local MIT license
+equal to the root LICENSE. The main tarball contains only package.json, LICENSE
+and bin/align-dotenv.js; each platform tarball adds metadata.json and one binary.
+Sources/tests/shared fixtures/planning files must stay out of the tarballs.
 
 ## Synchronized releases (maintainers)
 
 ### Standalone executable prototype (v0.4.0 Phase 1)
 
-Python remains the canonical behavior implementation; npm still uses its native
-TypeScript CLI. See [`.agents/EXECUTABLE_ARCH.md`](.agents/EXECUTABLE_ARCH.md) for
-the bundler decision, platform limits and pending gates. In a clean Python 3.13.15
+Python is the sole canonical behavior implementation; development npm delegates
+to its executable. See [`.agents/EXECUTABLE_ARCH.md`](.agents/EXECUTABLE_ARCH.md) for
+the bundler decision and platform limits. In a clean Python 3.13.15
 build environment:
 
 ```bash
@@ -82,10 +83,14 @@ python -m unittest discover -s tests -p test_executable.py -v
 
 Build natively on each target. Ubuntu x86_64 and Windows x86_64 validation is a
 separate CI workflow, not authorization to publish binaries. Do not commit
-generated executables, migrate npm, or claim Phase 2 readiness before both gates
-actually pass. The executable embeds Python; consumers do not install Python.
+generated executables or claim readiness before all required gates actually pass.
+The executable embeds Python; consumers do not install Python.
 
 ### Published Python/npm procedure
+
+The procedure below records the historical dual release. Executable-backed npm
+publication remains blocked pending separate coordinated platform release review;
+Phase 3 is not publication authorization.
 
 **v0.3.0 is released** on [GitHub](https://github.com/Geonhui-Lee/align-dotenv/releases/tag/v0.3.0),
 [PyPI](https://pypi.org/project/align-dotenv/0.3.0/), and

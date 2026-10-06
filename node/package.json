@@ -3,7 +3,7 @@
   "version": "0.3.1",
   "private": true,
   "type": "module",
-  "description": "Align local dotenv files with their templates while preserving existing values.",
+  "description": "Private executable-backed npm validation workspace; distribution manifests live in npm/.",
   "license": "MIT",
   "author": "Geonhui Lee",
   "repository": {
@@ -16,21 +16,11 @@
     "url": "https://github.com/Geonhui-Lee/align-dotenv/issues"
   },
   "keywords": ["dotenv", "env", "cli", "template", "configuration"],
-  "bin": {
-    "align-dotenv": "./dist/bin.js"
-  },
-  "files": ["dist/**/*.js", "dist/**/*.d.ts", "LICENSE"],
   "engines": {
     "node": ">=22"
   },
   "scripts": {
-    "build": "tsc --project tsconfig.json",
-    "test": "npm run build && node --test test/*.test.mjs",
-    "test:package": "npm run build && node --test packaging/*.test.mjs",
-    "prepack": "npm run build"
-  },
-  "devDependencies": {
-    "@types/node": "24.19.1",
-    "typescript": "7.0.2"
+    "test": "node --test test/*.test.mjs",
+    "test:package": "node --test packaging/*.test.mjs"
   }
 }

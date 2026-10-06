@@ -1,10 +1,10 @@
 # align-dotenv
 
-> This private workspace retains the released v0.3.1 native TypeScript behavior
-> as a temporary migration reference. The unreleased executable-backed npm
-> distribution is defined in `npm/`; it contains no TypeScript dotenv semantics.
-> See the repository's `.agents/NPM_EXECUTABLE.md`. Native implementation removal
-> is deferred to Phase 3. The installation/support notes below describe v0.3.1.
+> This private, dependency-free workspace validates the unreleased executable-backed
+> npm distribution in `npm/`. The native TypeScript implementation, compiler and
+> reference-only tests have been retired. Python is the sole behavioral source;
+> JavaScript only launches the packaged executable. Released npm v0.3.1 is unchanged.
+> See `.agents/NPM_EXECUTABLE.md` and `.agents/PHASE3.md` in the repository.
 
 Keep local dotenv files aligned with their templates without losing local values.
 
@@ -15,8 +15,9 @@ preserving existing local values and active/commented assignment state.
 
 ## Install
 
-Requires **Node.js >=22**. Install as a development-time CLI with zero runtime
-dependencies:
+Requires **Node.js >=22**. The commands below install the existing published
+release. The unreleased executable-backed distribution uses exact-version optional
+platform packages; consumers will not require a Python installation:
 
 ```bash
 npm install --save-dev align-dotenv
@@ -132,14 +133,15 @@ cross-file rollback, and crash durability are not guaranteed.
 
 ## Platform support
 
-Node.js **>=22**. Release CI tests **Linux/Ubuntu** and **Windows**, with **Node 22
-and Node 24**; local Linux validation also uses WSL. macOS is not currently part of
-the tested release matrix, but installation is not blocked.
+The unreleased distribution supports **Ubuntu 24.04 x86_64** and **Windows Server
+2022 x86_64**, tested with **Node 22, 24 and 26**. Unsupported OS/architecture fails
+safely. macOS, ARM, musl and older Linux are not claimed; bundled Python requires
+GLIBC_2.38. These restrictions do not change previously published npm releases.
 
 ## Development / Repository
 
 See the [repository](https://github.com/Geonhui-Lee/align-dotenv) for development
-instructions, shared Python/Node behavioral fixtures, and detailed limitations.
+instructions, shared behavioral fixtures, and detailed limitations.
 The [Python distribution](https://pypi.org/project/align-dotenv/) provides the same
 development-time CLI through Python tooling.
 
