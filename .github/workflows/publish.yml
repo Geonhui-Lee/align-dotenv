@@ -3,57 +3,81 @@ name: Publish to PyPI
 on:
   release:
     types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing published v0.4.0 release to verify/recover
+        required: true
+        type: string
+
+concurrency:
+  group: pypi-publish-${{ github.event.release.tag_name || inputs.tag }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  actions: read
+
+env:
+  RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
 
 jobs:
-  build:
-    if: startsWith(github.event.release.tag_name, 'v')
-    runs-on: ubuntu-latest
+  guard:
+    if: vars.ENABLE_V040_RELEASE == 'true'
+    runs-on: ubuntu-24.04
+    outputs:
+      commit: ${{ steps.release.outputs.commit }}
+      baseline_run: ${{ steps.release.outputs.baseline_run }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.release.tag_name }}
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.14'
-      - name: Verify release tag matches package version
-        env:
-          RELEASE_TAG: ${{ github.event.release.tag_name }}
-        run: |
-          python - <<'PY'
-          import os
-          import pathlib
-          import tomllib
-
-          version = tomllib.loads(pathlib.Path('pyproject.toml').read_text())['project']['version']
-          if os.environ['RELEASE_TAG'] != f'v{version}':
-              raise SystemExit('Release tag does not match pyproject.toml version')
-          PY
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-      - name: Verify synchronized Python/npm release versions
+      - name: Require all successful validation gates for the existing published release
+        id: release
         env:
-          RELEASE_TAG: ${{ github.event.release.tag_name }}
-        run: node scripts/check-versions.mjs --release
-      - run: python -m pip install build twine
-      - run: python -m build
-      - run: python -m twine check --strict dist/*
-      - uses: actions/upload-artifact@v4
-        with:
-          name: release-distributions
-          path: dist/*
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/find-release-runs.mjs
 
   publish:
-    needs: build
-    runs-on: ubuntu-latest
+    needs: guard
+    runs-on: ubuntu-24.04
     environment:
       name: pypi
       url: https://pypi.org/p/align-dotenv
     permissions:
+      contents: read
+      actions: read
       id-token: write
     steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.guard.outputs.commit }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Verify immutable tagged source, versions and confirmed prerequisites
+        env:
+          EXPECTED_COMMIT: ${{ needs.guard.outputs.commit }}
+        run: |
+          test "$(git rev-parse HEAD)" = "$EXPECTED_COMMIT"
+          test "$(git rev-parse "refs/tags/$RELEASE_TAG^{commit}")" = "$EXPECTED_COMMIT"
+          node scripts/check-versions.mjs --release
+          node --input-type=module -e 'import fs from "node:fs"; import {assertPublicationApproved} from "./scripts/release-npm.mjs"; assertPublicationApproved(JSON.parse(fs.readFileSync("release-policy.json")),"0.4.0");'
       - uses: actions/download-artifact@v4
         with:
-          name: release-distributions
+          name: python-distributions-${{ needs.guard.outputs.commit }}
+          run-id: ${{ needs.guard.outputs.baseline_run }}
+          github-token: ${{ github.token }}
           path: dist/
+      - name: Reinspect exact validated Python distributions without rebuilding
+        run: python scripts/check-python-package.py dist
+      - name: Refuse immutable version mismatches; skip only byte-identical completed publication
+        id: existing
+        run: python scripts/check-pypi-existing.py
       - uses: pypa/gh-action-pypi-publish@release/v1
+        if: steps.existing.outputs.already_published != 'true'

@@ -31,6 +31,16 @@ jobs:
       - run: python -m pip install build twine
       - run: python -m build
       - run: python -m twine check --strict dist/*
+      - name: Inspect exact source/wheel metadata and clean installed CLI
+        run: python scripts/check-python-package.py dist
+      - name: Release assembly negative guards (synthetic inputs, no publication)
+        run: python -m unittest discover -s scripts -p test_release_tools.py -v
+      - uses: actions/upload-artifact@v4
+        with:
+          name: python-distributions-${{ github.sha }}
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 30
 
   node-readiness:
     strategy:
@@ -54,6 +64,8 @@ jobs:
         run: node ../scripts/check-versions.mjs
       - name: Test version guard
         run: node --test ../scripts/check-versions.test.mjs
+      - name: Test coordinated release guards without registry mutation
+        run: node --test ../scripts/release-npm.test.mjs
       - name: Launcher transport and safe-failure tests
         run: npm test
       - name: Packed artifact and installed npm-bin tests

@@ -78,6 +78,38 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+  release-candidate:
+    needs: [native-package, npm-executable]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13.15'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: actions/download-artifact@v4
+        with:
+          name: npm-native-ubuntu-24.04-${{ github.sha }}
+          path: dist/release-inputs/linux
+      - uses: actions/download-artifact@v4
+        with:
+          name: npm-native-windows-2022-${{ github.sha }}
+          path: dist/release-inputs/windows
+      - name: Assemble exact candidate only after all six native consumer jobs pass
+        run: python scripts/prepare-release.py dist/release-inputs dist/release --tag "v$(python -c 'import tomllib; print(tomllib.load(open("pyproject.toml", "rb"))["project"]["version"])')"
+      - name: Publication order, immutable recovery and fail-closed prerequisite unit tests
+        run: node --test scripts/release-npm.test.mjs
+      - name: Offline dry-run publication plan (no tag, registry mutation or OIDC)
+        run: node scripts/release-npm.mjs dist/release --plan
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-candidate-${{ github.sha }}
+          path: dist/release/**
+          if-no-files-found: error
+          retention-days: 30
+
   npm-executable:
     needs: native-package
     strategy:

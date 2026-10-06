@@ -45,6 +45,12 @@ jobs:
               stream.write(f'ALIGN_DOTENV_EXE={artifact}\n')
       - name: Actual artifact subprocess tests (external cwd, no Python on PATH)
         run: python -m unittest discover -s tests -p test_executable.py -v
+      - name: Audit unpacked modules and canonical source equality
+        run: python scripts/audit-executable.py "$env:ALIGN_DOTENV_EXE"
+        if: runner.os == 'Windows'
+      - name: Audit unpacked modules and canonical source equality
+        run: python scripts/audit-executable.py "$ALIGN_DOTENV_EXE"
+        if: runner.os == 'Linux'
       - name: Inspect architecture, record metadata and invoke external help
         shell: python
         run: |
