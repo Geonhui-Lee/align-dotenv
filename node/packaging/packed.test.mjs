@@ -109,7 +109,7 @@ test("packed package: artifact and fresh-consumer npm-bin release gate", { timeo
       check(metadata.version === python.match(/\[project\][\s\S]*?\nversion = "([^"]+)"/)[1], "Python/npm versions diverged");
       check(lock.name === metadata.name && lock.version === metadata.version &&
         lock.packages[""].version === metadata.version, "npm manifest/lockfile versions diverged");
-      check(metadata.name === "align-dotenv" && metadata.private === true && metadata.license === "MIT", "packed package identity/protection mismatch");
+      check(metadata.name === "align-dotenv" && metadata.private === false && metadata.license === "MIT", "packed package identity/release readiness mismatch");
       check(metadata.bin["align-dotenv"] === "./dist/bin.js" && metadata.engines.node === ">=22", "packed bin/engine mismatch");
       check(!metadata.os && !metadata.dependencies && !metadata.optionalDependencies, "unwanted OS restriction or runtime dependencies");
       const bin = entries.get("package/dist/bin.js");

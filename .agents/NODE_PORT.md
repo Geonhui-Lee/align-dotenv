@@ -5,10 +5,11 @@
 Python v0.2.0 on `develop` is the initial reference, not a generic dotenv library.
 The Python production behavior and package layout remain unchanged; shared
 Python/npm metadata is now prepared as 0.3.0 after the real CI gate passed. Keep
-`src/align_dotenv/`, `tests/`, and `pyproject.toml` in place. The private `node/`
+`src/align_dotenv/`, `tests/`, and `pyproject.toml` in place. The `node/`
 workspace now implements parser/reconciliation, single-file alignment and project
 discovery/preflight/application and CLI. No runtime dependency, publication,
-release or tag is part of this phase. The workspace remains private.
+release or tag is part of this phase. The final release-preparation phase explicitly
+sets `private: false` for manual npm bootstrap; automation remains disabled.
 
 Audit basis: all seven Python package files and all three original test modules
 were read. `fixtures/README.md` defines the shared JSON format;
@@ -405,8 +406,9 @@ gates. No additional user-facing functionality is part of release preparation.
 - Package root remains `node/`. Metadata uses `align-dotenv`, prepared `0.3.0`
   (equal to Python's authorized release metadata update), MIT, Geonhui Lee, GitHub URLs with
   repository directory `node`, CLI keywords, ESM, `engines.node >=22`, and the bin
-  mapping above. No `os` restriction or runtime dependencies. `private: true`
-  remains: actual npm pack/install succeeds with publication protection enabled.
+  mapping above. No `os` restriction or runtime dependencies. `private: false`
+  is now explicitly authorized for manual first-publication bootstrap. Earlier
+  pack/install validation also passed with `private: true` protection enabled.
 - Node 22 was chosen as the oldest current supported LTS line, not because of a
   Node 24-only API. ES2022/top-level-await ESM, fatal TextDecoder with BOM options,
   bigint stat/lstat, file handles/exclusive opens/chmod/rename, crypto randomBytes,
@@ -456,8 +458,10 @@ gates. No additional user-facing functionality is part of release preparation.
    npm manifest and lockfile identity/version without dependencies. CI runs it and
    9 guard tests; release mode additionally requires `RELEASE_TAG == vX.Y.Z`.
    Both publishing workflows use it before any upload.
-3. Only with separate final authorization, change `private: true` to `false` and configure npm publishing
-   access/owner. Prefer npm Trusted Publishing (OIDC) on GitHub-hosted runners and
+3. Final release preparation now explicitly authorizes `private: false`; no name
+   or version change. First npm 0.3.0 publication will be manual and interactive
+   using the maintainer's npm account + 2FA, not Actions. For later versions,
+   prefer npm Trusted Publishing (OIDC) on GitHub-hosted runners and
    an approved `npm` environment, with `id-token: write`, exact repository/workflow
    identity and an explicit release event/version guard; never ordinary pushes.
    Existing PyPI release event/tag guard/Trusted Publisher/environment are retained;
@@ -478,10 +482,10 @@ gates. No additional user-facing functionality is part of release preparation.
    not just the default stage-only permission. Stage-only plus interactive 2FA is
    an alternative future policy, not silently interchangeable with this draft.
    No direct or staged upload is performed in this task.
-5. Package-settings trusted-publisher configuration/first-publication bootstrap
-   requires maintainer action. If an initial interactive 2FA-authenticated bootstrap
-   is necessary, authorize it separately rather than introducing a long-lived
-   npm token. Then restrict token access, confirm provenance, and verify registry
+5. Trusted Publisher configuration requires an existing npm package. `align-dotenv`
+   does not yet exist, so v0.3.0 **must** use manual interactive account + 2FA
+   bootstrap; this is planned, not performed. After it exists, configure the
+   publisher for future versions, restrict token access, and verify registry
    installation. Exact future settings: npm owner `Geonhui-Lee`, repository
    `align-dotenv`, workflow filename `publish-npm.yml`, environment `npm`; create
    that GitHub environment with reviewer/tag protections, confirm direct publishing
@@ -489,11 +493,11 @@ gates. No additional user-facing functionality is part of release preparation.
    existing `pypi` publisher. No external configuration or secret creation occurred.
 
 Technical package status: **READY FOR NPM RELEASE** after actual required platform
-validation. Pre-release metadata/workflows are prepared but publication remains
-protected. Retain private protection until separate final release authorization;
-do not publish, create release tags or mark either distribution published here.
+validation. Final release preparation removes manifest private protection with
+explicit authorization, while automated npm publishing remains disabled.
+Do not publish, create release tags or mark either distribution published here.
 
-### Final preparation verification
+### Previous protected preparation verification
 
 - Preparation commit `c1ced078c6238ecd26572c4cdafd82d2b78e3921` was pushed on the
   same feature branch. [CI 37424356302](https://github.com/Geonhui-Lee/align-dotenv/actions/runs/37424356302)
@@ -508,3 +512,29 @@ do not publish, create release tags or mark either distribution published here.
   `ENABLE_NPM_PUBLISHING` is unset. No account setup, upload, tag or release occurred.
 - Status: **READY FOR FINAL RELEASE AUTHORIZATION**; this is readiness, not
   authorization to publish or a claim of a completed v0.3.0 release.
+
+### Final release commit: manual bootstrap (not published)
+
+- `align-dotenv@0.3.0` now has `private: false` by explicit user authorization;
+  Python/npm/lockfile versions remain 0.3.0, zero runtime dependencies, unchanged
+  Python production sources. Lockfile identity/version need no private-field change.
+- First npm v0.3.0: manual interactive maintainer npm account authentication + 2FA.
+  No package exists yet, so Trusted Publisher setup cannot bootstrap this release.
+- `ENABLE_NPM_PUBLISHING` must remain unset/disabled through the v0.3.0 GitHub
+  Release and its reruns. Never rerun its npm publisher after manual publication
+  or later variable enablement; an existing version must not be published twice.
+- After v0.3.0 exists: configure `Geonhui-Lee / align-dotenv / publish-npm.yml / npm`,
+  protect the GitHub npm environment, then enable the variable only for a future
+  unpublished version. Future GitHub Release-driven OIDC supplies automatic npm
+  provenance; the local manual bootstrap does not promise that provenance.
+- Existing PyPI explicit-release, tag/version, environment and Trusted Publisher
+  gates remain intact. npm workflow changes are comments only; opt-in and validation
+  are unchanged. No token, credential, external account setting or upload added.
+- Ordered maintainer commands and release steps are in `CONTRIBUTING.md`.
+- Final private:false WSL/Linux validation passed: 47 Python tests plus compile/
+  import, 378 workspace tests, 9 packed tests and synchronized version check.
+  Tarball: 17 intended files, 13,278 compressed / 41,984 unpacked bytes, README
+  and matching MIT LICENSE present, no test payload/local-path markers. Tarball
+  remains outside checkout; no generated artifacts/.env tracked. The packed test
+  now strictly requires private:false rather than removing its metadata assertion.
+- Status: **READY FOR MANUAL NPM BOOTSTRAP**, subject to final pushed-commit CI.

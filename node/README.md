@@ -9,7 +9,10 @@ and commented/active state. Zero runtime dependencies.
 
 The Node implementation is functionally complete against the Python v0.2.0
 reference, with documented limitations. This npm package is **not published**;
-`private: true` still prevents accidental publication. Version `0.3.0` is prepared
+`private: false` is explicitly authorized for the maintainer's first manual,
+interactive npm account + 2FA publication; no publication was performed here.
+Automated npm publishing must remain disabled for v0.3.0, including its GitHub
+Release and any rerun after manual publication. Version `0.3.0` is prepared
 for the future synchronized Python/npm release; no tag or release has been created.
 The supported contract is initially the development-time CLI, not stable public
 JavaScript imports.
@@ -149,8 +152,12 @@ a promised public library API. No sources, tests, fixtures, dependencies,
 sourcemaps or planning files are included. `prepack` rebuilds; consumers never
 need the compiler. TypeScript and Node typings are development-only dependencies.
 
-Publication is not enabled here. Remaining authorization/account-side steps are
-documented in repository `CONTRIBUTING.md`: package/name ownership, trusted publisher
-and protected npm environment setup, explicit `private: false`, and the opt-in
-`ENABLE_NPM_PUBLISHING=true` repository variable. None of those settings was changed.
-The release-only workflow rechecks tag/version and both OSes before any future upload.
+The manifest permits publication, but no automated publisher is enabled here.
+The package does not yet exist on npm, so its first `0.3.0` publication must be
+bootstrapped manually with the maintainer's npm account and 2FA before a Trusted
+Publisher can be configured. Keep `ENABLE_NPM_PUBLISHING` unset/disabled for the
+v0.3.0 release and do not rerun its npm workflow after enabling future publishing.
+After the package exists, configure Trusted Publishing for future versions:
+`Geonhui-Lee / align-dotenv / publish-npm.yml / npm`. Only later releases should
+enable `ENABLE_NPM_PUBLISHING=true` for GitHub Release-driven OIDC and automatic
+provenance. See repository `CONTRIBUTING.md` for the ordered manual steps.

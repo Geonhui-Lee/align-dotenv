@@ -123,11 +123,12 @@
   unchanged. Runtime dependencies remain zero; workspace remains private.
 - Package readiness is now implemented below, without production behavior changes.
 
-## Native npm package readiness (READY FOR NPM RELEASE; publication protected)
+## Native npm package readiness (READY FOR NPM RELEASE; manual bootstrap prepared)
 
 - `node/package.json`: production metadata, name `align-dotenv`, MIT/author/GitHub
   URLs, repository subdirectory, `engines >=22`, compiled `align-dotenv` bin and
-  restricted dist/LICENSE file list. `private: true` remains; pack/install works.
+  restricted dist/LICENSE file list. Final release preparation explicitly sets
+  `private: false`; automated npm publishing remains disabled for v0.3.0.
   Prepared npm version `0.3.0` equals Python after the explicitly authorized metadata
   update; no Python production behavior changes.
 - Byte-identical `node/LICENSE`; npm-facing README clearly marks publication as
@@ -152,8 +153,8 @@
   requires explicit variable opt-in plus non-private manifest, protected environment
   and tag/version checks. Existing PyPI protections are retained and strengthened
   with the shared version guard. No secrets, settings or uploads activated.
-- Status: **READY FOR NPM RELEASE**, with private protection retained. Final
-  authorization, name/access/bootstrap and account-side publisher setup remain.
+- Status: **READY FOR NPM RELEASE**; private removal now authorized and prepared.
+  Actual publication and account-side setup remain maintainer actions.
 
 ## Synchronized v0.3.0 preparation (not released)
 
@@ -170,11 +171,8 @@
 - Root/Node README position npm as a first-class development CLI, not a supported
   public JS import API. Official tested Node OSes: Linux/Ubuntu and Windows; macOS
   excluded from test scope without metadata installation restrictions.
-- Manual steps: confirm npm name/owner/first-package bootstrap; configure Trusted
-  Publisher `Geonhui-Lee / align-dotenv / publish-npm.yml / npm` with direct action
-  permission; create protected npm GitHub environment; only after separate approval
-  change private to false and enable `ENABLE_NPM_PUBLISHING=true`, then authorize
-  the explicit v0.3.0 tag/release. No account changes, publication, tags or releases
+- Manual steps now follow the bootstrap sequence below; Trusted Publisher setup
+  comes after npm 0.3.0 exists. No account changes, publication, tags or releases
   were performed. Both distributions' upload success must be verified before
   marking v0.3.0 released; they are not a cross-registry transaction.
 - Final preparation commit `c1ced078c6238ecd26572c4cdafd82d2b78e3921` pushed;
@@ -187,6 +185,33 @@
   checkout. No generated artifacts or dotenv files tracked; no value markers in
   logs. `private: true` retained, npm opt-in variable unset, nothing published,
   tagged or released. Status: **READY FOR FINAL RELEASE AUTHORIZATION**.
+
+## Final v0.3.0 release commit preparation (not published)
+
+- Explicitly authorized `private: false` in `node/package.json`; package identity
+  stays `align-dotenv@0.3.0`. Lockfile versions/identity already match; no runtime
+  dependency or Python production change. Earlier private-protected state above
+  is historical, superseded by this release preparation.
+- npm v0.3.0 is the first package publication: manual interactive bootstrap with
+  maintainer npm account authentication + 2FA. Trusted Publisher configuration
+  requires the package to exist and cannot perform this first publication.
+- Keep `ENABLE_NPM_PUBLISHING` unset/disabled for the v0.3.0 GitHub Release and
+  reruns. Do not republish manually published 0.3.0 from Actions.
+- After v0.3.0: configure npm Trusted Publisher owner `Geonhui-Lee`, repository
+  `align-dotenv`, workflow `publish-npm.yml`, environment `npm`, with protected
+  environment approval and direct publishing permission. Enable
+  `ENABLE_NPM_PUBLISHING=true` only for a future unpublished version's explicit
+  GitHub Release. Future releases use OIDC and automatic npm provenance.
+- PyPI workflow remains explicit GitHub Release-driven with unchanged safeguards;
+  npm workflow opt-in remains unchanged. No npm tokens/credentials added.
+- Release commands/ordered maintainer steps: `CONTRIBUTING.md`. No publication,
+  tags or releases performed. Final private:false local validation passed: 47
+  Python tests plus compile/import, 378 workspace tests, 9 packed tests and shared
+  version check. Tarball has 17 files, 13,278 compressed / 41,984 unpacked bytes;
+  README/LICENSE present, zero runtime dependencies, no payload/local-path markers,
+  no generated artifacts/.env tracked, Python production unchanged. Packed metadata
+  assertion strictly checks private:false. Repository npm opt-in variable is unset.
+- Status: **READY FOR MANUAL NPM BOOTSTRAP**, subject to final pushed-commit CI.
 
 ## Later ideas (not part of v0.2.0)
 

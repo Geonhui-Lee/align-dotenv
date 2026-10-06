@@ -58,9 +58,11 @@ Or add development scripts:
 ```
 
 The repository prepares synchronized Python/npm version `0.3.0`; neither
-distribution's 0.3.0 release has been published. npm remains protected with
-`private: true`. See [node/README.md](node/README.md) for local tarball validation
-and Node-specific limitations. No stable JavaScript imports are offered initially.
+distribution's 0.3.0 release has been published. npm is prepared with `private: false`
+for the maintainer's manual, interactive account + 2FA bootstrap. Automated npm
+publishing remains disabled for v0.3.0. See [node/README.md](node/README.md) for
+local tarball validation and Node-specific limitations. No stable JavaScript
+imports are offered initially.
 
 ## Use
 
