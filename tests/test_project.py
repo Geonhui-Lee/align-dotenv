@@ -73,8 +73,8 @@ class ProjectTests(unittest.TestCase):
                 response = run_project(root, *options)
                 self.assertEqual(response.returncode, 2)
                 self.assertEqual(response.stdout, "")
-                self.assertIn("z/.env.example", response.stderr)
-                self.assertIn("z/.env.template", response.stderr)
+                self.assertIn(str(Path("z/.env.example")), response.stderr)
+                self.assertIn(str(Path("z/.env.template")), response.stderr)
                 self.assertEqual(first.read_bytes(), original)
             (root / "z/.env").unlink()
             self.assertEqual(run_project(root).returncode, 2)
@@ -87,12 +87,15 @@ class ProjectTests(unittest.TestCase):
             second = pair(root, "nested/.env.local", ".template",
                           local=b"KEY=other-secret\n", sample=b"# KEY=default\n")
             first.chmod(0o600)
+            original_mode = stat.S_IMODE(first.stat().st_mode)
             response = run_project(root)
             self.assertEqual(response.returncode, 0, response.stderr)
             self.assertEqual(first.read_bytes(),
                              b"# Heading\n# KEY=private-secret\n\nEXTRA=unknown-secret\n")
             self.assertEqual(second.read_bytes(), b"KEY=other-secret\n")
-            self.assertEqual(stat.S_IMODE(first.stat().st_mode), 0o600)
+            self.assertEqual(stat.S_IMODE(first.stat().st_mode), original_mode)
+            if os.name != "nt":  # Windows has no POSIX user/group/other bits.
+                self.assertEqual(stat.S_IMODE(first.stat().st_mode), 0o600)
             inodes = first.stat().st_ino, second.stat().st_ino
             self.assertEqual(run_project(root).returncode, 0)
             self.assertEqual((first.stat().st_ino, second.stat().st_ino), inodes)
@@ -111,7 +114,7 @@ class ProjectTests(unittest.TestCase):
                 for options in ((), ("--check",)):
                     response = run_project(root, *options)
                     self.assertEqual(response.returncode, 2)
-                    self.assertIn(bad_name, response.stderr)
+                    self.assertIn(str(Path(bad_name)), response.stderr)
                     self.assertNotIn("secret", response.stdout + response.stderr)
                     self.assertEqual((first.read_bytes(), second.read_bytes()), originals)
                     self.assertEqual((first.stat().st_ino, second.stat().st_ino), inodes)

@@ -48,6 +48,34 @@ may ship; sources/tests/shared fixtures/planning files must stay out of the tarb
 
 ## Synchronized releases (maintainers)
 
+### Standalone executable prototype (v0.4.0 Phase 1)
+
+Python remains the canonical behavior implementation; npm still uses its native
+TypeScript CLI. See [`.agents/EXECUTABLE_ARCH.md`](.agents/EXECUTABLE_ARCH.md) for
+the bundler decision, platform limits and pending gates. In a clean Python 3.13.15
+build environment:
+
+```bash
+python -m pip install -r scripts/requirements-executable.txt
+python -m pip install .
+python -m unittest discover -s tests -v
+python scripts/build-executable.py
+```
+
+Set `ALIGN_DOTENV_EXE` to the absolute generated artifact path (under
+`dist/executable/`), then run:
+
+```bash
+python -m unittest discover -s tests -p test_executable.py -v
+```
+
+Build natively on each target. Ubuntu x86_64 and Windows x86_64 validation is a
+separate CI workflow, not authorization to publish binaries. Do not commit
+generated executables, migrate npm, or claim Phase 2 readiness before both gates
+actually pass. The executable embeds Python; consumers do not install Python.
+
+### Published Python/npm procedure
+
 **v0.3.0 is released** on [GitHub](https://github.com/Geonhui-Lee/align-dotenv/releases/tag/v0.3.0),
 [PyPI](https://pypi.org/project/align-dotenv/0.3.0/), and
 [npm](https://www.npmjs.com/package/align-dotenv/v/0.3.0). Its manual npm account +

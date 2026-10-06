@@ -18,6 +18,44 @@ def run_cli(target, template, *options):
 
 
 class FileTests(unittest.TestCase):
+    def test_atomic_writer_orders_same_directory_replacement_without_target_delete(self):
+        from align_dotenv import files
+        with tempfile.TemporaryDirectory() as directory:
+            target, template = Path(directory) / ".env", Path(directory) / "template"
+            target.write_bytes(b"KEY=private\n")
+            template.write_bytes(b"# Heading\nKEY=default\n")
+            original_mode = stat.S_IMODE(target.stat().st_mode)
+            native_chmod, native_replace, native_unlink = os.chmod, os.replace, Path.unlink
+            events = []
+
+            def chmod(path, mode):
+                self.assertEqual(Path(path).parent, target.parent)
+                self.assertEqual(mode, original_mode)
+                self.assertTrue(Path(path).read_bytes() == b"# Heading\nKEY=private\n",
+                                "temporary bytes mismatch (payload redacted)")
+                events.append("chmod")
+                native_chmod(path, mode)
+
+            def replace(source, destination):
+                self.assertEqual(events, ["chmod"])
+                self.assertEqual(Path(source).parent, target.parent)
+                self.assertEqual(destination, target)
+                self.assertTrue(target.read_bytes() == b"KEY=private\n",
+                                "original changed before replacement (payload redacted)")
+                events.append("replace")
+                native_replace(source, destination)
+
+            def unlink(path, *args, **kwargs):
+                self.assertNotEqual(path, target, "must never intentionally delete target")
+                events.append("cleanup")
+                return native_unlink(path, *args, **kwargs)
+
+            with patch.object(files.os, "chmod", chmod), patch.object(files.os, "replace", replace), \
+                 patch.object(Path, "unlink", unlink):
+                self.assertTrue(align_file(target, template))
+            self.assertEqual(events, ["chmod", "replace", "cleanup"])
+            self.assertEqual(set(Path(directory).iterdir()), {target, template})
+
     def test_writes_preserve_mode_and_are_idempotent(self):
         with tempfile.TemporaryDirectory() as directory:
             target = Path(directory) / ".env"
@@ -25,9 +63,12 @@ class FileTests(unittest.TestCase):
             template.write_bytes(b"KEY=default\r\n")
             target.write_bytes(b"KEY=private\n")
             target.chmod(0o600)
+            original_mode = stat.S_IMODE(target.stat().st_mode)
             self.assertTrue(align_file(target, template))
             self.assertEqual(target.read_bytes(), b"KEY=private\r\n")
-            self.assertEqual(stat.S_IMODE(target.stat().st_mode), 0o600)
+            self.assertEqual(stat.S_IMODE(target.stat().st_mode), original_mode)
+            if os.name != "nt":  # Windows chmod models writability, not POSIX bits.
+                self.assertEqual(stat.S_IMODE(target.stat().st_mode), 0o600)
             self.assertEqual(set(Path(directory).iterdir()), {target, template})
             inode = target.stat().st_ino
             self.assertFalse(align_file(target, template))
@@ -80,6 +121,7 @@ class FileTests(unittest.TestCase):
             original = b"KNOWN=private-secret\nZ=unknown-secret\n# A=other-secret\n"
             target.write_bytes(original)
             target.chmod(0o600)
+            original_mode = stat.S_IMODE(target.stat().st_mode)
             template.write_bytes(b"# Header\nKNOWN=default\n")
             inode = target.stat().st_ino
             for options, code in ((("--check",), 1),
@@ -107,7 +149,9 @@ class FileTests(unittest.TestCase):
             removed = run_cli(target, template, "--unknown", "remove")
             self.assertEqual(removed.returncode, 0)
             self.assertEqual(target.read_bytes(), b"# Header\nKNOWN=private-secret\n")
-            self.assertEqual(stat.S_IMODE(target.stat().st_mode), 0o600)
+            self.assertEqual(stat.S_IMODE(target.stat().st_mode), original_mode)
+            if os.name != "nt":
+                self.assertEqual(stat.S_IMODE(target.stat().st_mode), 0o600)
             self.assertNotIn("secret", keep.stdout + removed.stdout + clean_check.stdout)
 
     def test_invalid_paths_are_rejected_without_writing(self):
@@ -204,6 +248,7 @@ class FileTests(unittest.TestCase):
                         with self.subTest(lines=lines, policy=policy, check=check):
                             target.write_bytes(original)
                             target.chmod(0o600)
+                            original_mode = stat.S_IMODE(target.stat().st_mode)
                             inode = target.stat().st_ino
                             options = ("--unknown", policy) + (("--check",) if check else ())
                             result = run_cli(target, template, *options)
@@ -215,7 +260,9 @@ class FileTests(unittest.TestCase):
                             self.assertNotIn(".env.shared", result.stderr)
                             self.assertEqual(target.read_bytes(), original)
                             self.assertEqual(target.stat().st_ino, inode)
-                            self.assertEqual(stat.S_IMODE(target.stat().st_mode), 0o600)
+                            self.assertEqual(stat.S_IMODE(target.stat().st_mode), original_mode)
+                            if os.name != "nt":
+                                self.assertEqual(stat.S_IMODE(target.stat().st_mode), 0o600)
 
 
 if __name__ == "__main__":

@@ -8,6 +8,10 @@ __pycache__/
 build/
 dist/
 
+# Standalone executable build artifacts (see scripts/build-executable.py)
+# Prototype binaries are not published or committed to Git.
+dist/executable/
+
 # Virtual environments
 .venv/
 

@@ -1,0 +1,107 @@
+name: Standalone executable validation
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  executable:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-2022]
+    runs-on: ${{ matrix.os }}
+    env:
+      PYTHONUTF8: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13.15'
+          architecture: x64
+      - name: Install clean build dependencies and package
+        run: |
+          python -m pip install -r scripts/requirements-executable.txt
+          python -m pip install .
+      - name: Normal Python behavioral and safety tests
+        run: python -m unittest discover -s tests -v
+      - name: Compile validation
+        run: python -m compileall -q src tests scripts/build-executable.py
+      - name: Build native one-file executable
+        run: python scripts/build-executable.py --output-dir dist/executable
+      - name: Select exactly one x64 artifact
+        shell: python
+        run: |
+          import os
+          from pathlib import Path
+          artifacts = list(Path('dist/executable').glob('align-dotenv-v*-*x64*'))
+          assert len(artifacts) == 1, 'Expected exactly one x64 artifact'
+          artifact = artifacts[0].resolve()
+          print(f'{artifact.name}: {artifact.stat().st_size} bytes')
+          with open(os.environ['GITHUB_ENV'], 'a', encoding='utf-8') as stream:
+              stream.write(f'ALIGN_DOTENV_EXE={artifact}\n')
+      - name: Actual artifact subprocess tests (external cwd, no Python on PATH)
+        run: python -m unittest discover -s tests -p test_executable.py -v
+      - name: Inspect architecture, record metadata and invoke external help
+        shell: python
+        run: |
+          import hashlib, json, os, platform, struct, subprocess, sys, tempfile
+          from pathlib import Path
+          import PyInstaller
+          artifact = Path(os.environ['ALIGN_DOTENV_EXE'])
+          data = artifact.read_bytes()
+          if sys.platform == 'linux':
+              assert data[:5] == b'\x7fELF\x02', 'Expected ELF64'
+              assert struct.unpack_from('<H', data, 18)[0] == 62, 'Expected x86_64 ELF'
+          else:
+              assert data[:2] == b'MZ', 'Expected PE executable'
+              offset = struct.unpack_from('<I', data, 60)[0]
+              assert data[offset:offset + 4] == b'PE\0\0', 'Expected PE signature'
+              assert struct.unpack_from('<H', data, offset + 4)[0] == 0x8664, 'Expected AMD64 PE'
+          with tempfile.TemporaryDirectory() as directory:
+              subprocess.run([str(artifact), '--help'], cwd=directory, check=True)
+          metadata = dict(filename=artifact.name, bytes=len(data), sha256=hashlib.sha256(data).hexdigest(),
+              os=platform.system(), platform=platform.platform(), architecture='x86_64',
+              python=platform.python_version(), pyinstaller=PyInstaller.__version__,
+              commit=os.environ['GITHUB_SHA'], libc=platform.libc_ver())
+          text = json.dumps(metadata, indent=2) + '\n'
+          print(text)
+          (artifact.parent / 'metadata.json').write_text(text, encoding='utf-8')
+          (artifact.parent / 'SHA256SUMS').write_text(f'{metadata["sha256"]}  {artifact.name}\n', encoding='utf-8')
+      - name: Linux loader and libc inspection
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          file "$ALIGN_DOTENV_EXE"
+          ldd --version
+          ldd "$ALIGN_DOTENV_EXE"
+          readelf --version-info "$ALIGN_DOTENV_EXE"
+      - name: Linux Python-free consumer smoke (artifact only, no checkout)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          docker run --rm --network none \
+            --mount "type=bind,source=$ALIGN_DOTENV_EXE,target=/artifact/align-dotenv,readonly" \
+            ubuntu:24.04 sh -eu -c '
+              ! command -v python
+              ! command -v python3
+              mkdir "/project with spaces"
+              cd "/project with spaces"
+              printf "# Heading\nKEY=default\n" > .env.example
+              printf "KEY=fake-local\n" > .env
+              /artifact/align-dotenv --help
+              /artifact/align-dotenv .env --template .env.example
+              /artifact/align-dotenv --check
+              printf "# Heading\nKEY=fake-local\n" > expected
+              cmp .env expected
+            '
+      - name: Retain validated CI artifacts for inspection only
+        uses: actions/upload-artifact@v4
+        with:
+          name: executable-${{ matrix.os }}-${{ github.sha }}
+          path: dist/executable/*
+          if-no-files-found: error
+          retention-days: 7

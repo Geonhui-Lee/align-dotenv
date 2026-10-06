@@ -67,10 +67,86 @@
 - Tag only after local/CI/packed/version gates pass; observe both publication
   workflows and verify public versions, `latest`, provenance and fresh installs.
   Do not mark v0.3.1 released before actual upload/public verification success.
-  Current status: preparation in progress; no v0.3.1 publication claimed here.
+  Current baseline: v0.3.1 is released; its production behavior remains unchanged.
 - Reusable release procedure: [CONTRIBUTING.md](../CONTRIBUTING.md).
 
-## Later ideas (not part of the documentation patch)
+## v0.4.0 — universal executable foundation (Phase 1)
+
+### Architecture direction
+
+`src/align_dotenv/` is the **single canonical behavioral implementation** for all
+future distributions. The long-term model is:
+
+```text
+                Python source
+             src/align_dotenv/
+                    │
+        ┌───────────┴───────────┐
+        │                       │
+       PyPI             standalone binaries
+                                 │
+               ┌─────────────────┼─────────────────┐
+               ▼                 ▼                 ▼
+              npm             Composer       GitHub Releases
+```
+
+- `src/align_dotenv/` remains the authoritative Python implementation.
+- Standalone executables are built from that implementation; end users of eventual
+  non-Python package-manager distributions will not need Python installed.
+- v0.3.1 is the behavioral baseline throughout this migration. No behavioral change
+  is introduced unless it fixes a demonstrated pre-existing bug.
+- The existing TypeScript implementation in `node/` remains intact and unchanged for
+  now. It will not be replaced or removed until an executable-backed npm package has
+  been proven behaviorally equivalent on all required platforms.
+
+### Phase 1 scope — standalone executable prototype
+
+Phase 1 proves that the Python implementation can be packaged into a
+self-contained standalone executable and that the result preserves the v0.3.1
+behavioral contract on real platforms.
+
+**In scope:**
+- Evaluate PyInstaller vs Nuitka as packaging technologies.
+- Build a standalone `align-dotenv` executable from `src/align_dotenv/`.
+- Initial supported targets: Linux x86_64 and Windows x86_64.
+- Executable-level subprocess tests reusing the existing fixture corpus.
+- CI jobs that build and validate the executable on both required platforms.
+
+**Explicitly out of scope for Phase 1:**
+- Migrating the npm package to use the executable.
+- Removing or modifying the TypeScript implementation.
+- Publishing a new npm, PyPI, or GitHub Release version.
+- Adding macOS/ARM support (unless trivial and zero scope expansion).
+- Composer, RubyGems, or any other ecosystem packaging.
+- Any new CLI feature (including `--diff`).
+- Any behavioral change unless required to fix a pre-existing bug.
+
+**Technology selection:** PyInstaller one-file is selected, subject to the actual
+required executable gates. The rationale and
+full evaluation are in `.agents/EXECUTABLE_ARCH.md`.
+
+**Status:** In progress. Do not claim Phase 1 complete until Linux x86_64 and
+Windows x86_64 CI gates have actually passed.
+
+The current local machine is Linux ARM64, so local executable success cannot close
+either required x86_64 gate. Native builds and subprocess validation are configured
+in `.github/workflows/executable.yml`; observed results, not configuration alone,
+determine readiness. Version metadata remains 0.3.1 until release preparation.
+
+### Phase 2 — npm executable wrapper (future)
+
+Replace the native TypeScript implementation with a thin npm wrapper that launches
+the platform-appropriate standalone executable. Phase 2 begins only after Phase 1
+CI gates pass. The TypeScript source remains in `node/` until Phase 2 is proven.
+
+### Phase 3+ — additional ecosystems (future)
+
+Composer, RubyGems, and similar launchers follow the same pattern once the binary
+architecture is proven stable in Phase 2.
+
+---
+
+## Later ideas (not part of the v0.4.0 executable work)
 
 ### Likely next
 

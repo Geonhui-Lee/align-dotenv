@@ -1,0 +1,8 @@
+# Build-only dependencies; not Python package runtime requirements.
+PyInstaller==6.20.0
+pyinstaller-hooks-contrib==2026.4
+altgraph==0.17.5
+packaging==26.0
+setuptools==82.0.1
+pefile==2024.8.26; sys_platform == "win32"
+pywin32-ctypes==0.2.3; sys_platform == "win32"
