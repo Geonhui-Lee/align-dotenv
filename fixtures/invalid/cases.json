@@ -1,0 +1,113 @@
+{
+  "schema_version": 1,
+  "cases": [
+    {
+      "id": "unknown-error",
+      "template": "KNOWN=default\n",
+      "local": "Z=example-secret\nKNOWN=private-value\n# A=local-value\n",
+      "policies": ["error"],
+      "error": {
+        "kind": "unknown_keys",
+        "keys": ["A", "Z"],
+        "message": "unknown local keys: A, Z"
+      }
+    },
+    {
+      "id": "unsupported-shell-directives",
+      "template": "KNOWN=default\n",
+      "local": "KNOWN=private-value\nsource example-secret\n. local-value\nEXTRA=example-secret\n",
+      "policies": ["keep", "remove", "error"],
+      "error": {
+        "kind": "unsupported_local_syntax",
+        "lines": [2, 3],
+        "message": "unsupported local syntax at lines 2, 3; no changes were made"
+      }
+    },
+    {
+      "id": "unsupported-key-and-bare-export",
+      "template": "KNOWN=default\n",
+      "local": "INVALID-KEY=example-secret\nexport KNOWN\n",
+      "policies": ["keep", "remove", "error"],
+      "error": {
+        "kind": "unsupported_local_syntax",
+        "lines": [1, 2],
+        "message": "unsupported local syntax at lines 1, 2; no changes were made"
+      }
+    },
+    {
+      "id": "multiline-double-quote",
+      "template": "KNOWN=default\n",
+      "local": "CERT=\"example-secret\nprivate-value\n\"\nKNOWN=local-value\n",
+      "policies": ["keep", "remove", "error"],
+      "error": {
+        "kind": "unsupported_local_syntax",
+        "lines": [1, 2, 3],
+        "message": "unsupported local syntax at lines 1, 2, 3; no changes were made"
+      }
+    },
+    {
+      "id": "unclosed-commented-quote",
+      "template": "KNOWN=default\n",
+      "local": "# export EXTRA=  'example-secret\nKNOWN=private-value\n",
+      "policies": ["keep", "remove", "error"],
+      "error": {
+        "kind": "unsupported_local_syntax",
+        "lines": [1],
+        "message": "unsupported local syntax at lines 1; no changes were made"
+      }
+    },
+    {
+      "id": "escaped-quote-does-not-close",
+      "template": "KNOWN=default\n",
+      "local": "KNOWN=\"example-secret\\\"\n",
+      "policies": ["keep", "remove", "error"],
+      "error": {
+        "kind": "unsupported_local_syntax",
+        "lines": [1],
+        "message": "unsupported local syntax at lines 1; no changes were made"
+      }
+    },
+    {
+      "id": "line-continuation-crlf",
+      "template": "KNOWN=default\r\n",
+      "local": "KNOWN=private-value\\\r\nEXTRA=local-value\r\n",
+      "policies": ["keep", "remove", "error"],
+      "error": {
+        "kind": "unsupported_local_syntax",
+        "lines": [1],
+        "message": "unsupported local syntax at lines 1; no changes were made"
+      }
+    },
+    {
+      "id": "utf8-bom-is-not-stripped",
+      "template": "KNOWN=default\n",
+      "local": "\ufeffKNOWN=private-value\n",
+      "policies": ["keep", "remove", "error"],
+      "error": {
+        "kind": "unsupported_local_syntax",
+        "lines": [1],
+        "message": "unsupported local syntax at lines 1; no changes were made"
+      }
+    },
+    {
+      "id": "invalid-utf8-local",
+      "template": "KNOWN=default\n",
+      "local_hex": "4b4e4f574e3dff0a",
+      "policies": ["keep", "remove", "error"],
+      "error": {
+        "kind": "invalid_utf8",
+        "message": "files must contain UTF-8 text."
+      }
+    },
+    {
+      "id": "invalid-utf8-template",
+      "template_hex": "4b4e4f574e3dc3280a",
+      "local": "KNOWN=private-value\n",
+      "policies": ["keep", "remove", "error"],
+      "error": {
+        "kind": "invalid_utf8",
+        "message": "files must contain UTF-8 text."
+      }
+    }
+  ]
+}
