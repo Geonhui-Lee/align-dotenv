@@ -3,7 +3,8 @@
 ## Scope and reference
 
 Python v0.2.0 on `develop` is the initial reference, not a generic dotenv library.
-The Python production code, version and package layout remain unchanged. Keep
+The Python production behavior and package layout remain unchanged; shared
+Python/npm metadata is now prepared as 0.3.0 after the real CI gate passed. Keep
 `src/align_dotenv/`, `tests/`, and `pyproject.toml` in place. The private `node/`
 workspace now implements parser/reconciliation, single-file alignment and project
 discovery/preflight/application and CLI. No runtime dependency, publication,
@@ -44,12 +45,17 @@ Existing focused tests remain the filesystem/project safety reference.
 - Node CI is configured for Ubuntu and Windows with Node 22 and 24. Existing Python CI
   and production sources are unchanged. Locally validated only in WSL/Linux:
   378 Node tests pass (263 previous tests, 107 process CLI tests and 8 direct
-  API/build tests), plus 9 packed-package tests and all 47 Python tests. Windows and Actions Ubuntu results for
-  these checkout changes are **pending**, not inferred from local Linux success.
-  No Actions run for the working branch was observed; changes remain local.
+  API/build tests), plus 9 packed-package tests and all 47 Python tests.
+  Real Ubuntu/Windows CI passed on commit `926d7aef877db7222ba728c9a50f04641e38777b`:
+  [run 37423326194](https://github.com/Geonhui-Lee/align-dotenv/actions/runs/37423326194).
+  Ubuntu/22, Ubuntu/24, Windows/22 and Windows/24 workspace and packed gates passed;
+  Python 3.10–3.14 and Python packaging passed. No CI failures or fixes were needed.
+  Windows passed 375 workspace tests with only 3 POSIX mode skips; all 9 packed
+  tests passed without skips, including actual npm-generated `.cmd`/npx invocation.
+  Ubuntu passed all 378 workspace and 9 packed tests without skips.
 - See `node/README.md` for commands and API correspondence. This is not a
-  production-ready published Node distribution. Packaging is structurally ready;
-  Ubuntu/Windows Actions and publication authorization remain pending. macOS is
+  published Node distribution. The technical package gate is **READY FOR NPM RELEASE**;
+  final publication authorization/account setup remain pending. macOS is
   outside the tested release matrix, not blocked by metadata.
 
 ## Single-file implementation and platform gates
@@ -123,7 +129,7 @@ including stat identity mapping and native rename. The Ubuntu/Windows Actions ma
 is the authoritative release gate; macOS is untested/out of scope. Review results before
 claiming cross-platform filesystem parity.
 
-## Project implementation and unresolved gates
+## Project implementation and validated gates
 
 `node/src/project.ts` exports `ProjectValidationError`, readonly `DotenvPair`,
 `PlannedUpdate`, `ProjectPlan`, `PlanProjectOptions`, and asynchronous `discover`,
@@ -171,8 +177,8 @@ trees (seed `20261006`), including exclusions, template-looking directories,
 directory symlinks, Unicode/component ordering and ambiguity. Shared fixtures
 continue to pin content rather than duplicating it in project tests.
 
-Cross-platform status remains **unresolved**, separately for Ubuntu and Windows:
-no branch Actions run was observed before this phase. The current two-OS matrix
+The real cross-platform gate is **passed** for Ubuntu and Windows in run 37423326194.
+The current two-OS matrix
 runs the new `*.test.mjs` suites automatically. New project symlink-specific tests
 skip only if Windows actually denies/does not support fixture creation; they give
 an explicit privilege/capability reason. Existing filesystem tests remain intact.
@@ -368,18 +374,18 @@ and a deliberate contract decision.
    whitespace, endings, state and safe syntax errors, with focused unit tests.
 2. **Reconciliation (implemented):** pure functions consuming shared fixtures;
    exact output, metadata, error precedence and second-pass behavior.
-3. **Filesystem layer (implemented; cross-platform validation pending):** strict
+3. **Filesystem layer (implemented; Ubuntu/Windows CI passed):** strict
    UTF-8 bytes/text boundary, regular-file validation, same-file identity,
    symlink rejection, mode bits, atomic replacement,
    cleanup and unchanged-file tests. Both byte-input fixtures are now exercised.
-4. **Project discovery/preflight (implemented; platform validation pending):** recursive discovery, exclusions,
+4. **Project discovery/preflight (implemented; Ubuntu/Windows CI passed):** recursive discovery, exclusions,
    directory symlinks, ambiguity, missing targets, full in-memory preflight,
    planned updates, post-preflight target safety and per-file atomic application.
    Existing Python scenarios reproduced, including late failures without earlier writes.
-5. **CLI (implemented privately; platform validation pending):** argument parsing, explicit target/template and
+5. **CLI (implemented privately; Ubuntu/Windows CI passed):** argument parsing, explicit target/template and
    project modes, `--unknown`, `--check`, safe diagnostics, stdout grammar and
    exit codes 0/1/2. Exact output and no-value-leak tests included.
-6. **Package readiness (implemented; Ubuntu/Windows CI pending):** production
+6. **Package readiness (implemented; Ubuntu/Windows CI passed):** production
    metadata, tested Node 22 baseline, restricted real tarball inspection, MIT
    license, fresh offline install and generated-bin tests. Keep private/version
    protection. Future publication requires separate authorization and joint version
@@ -391,13 +397,13 @@ and a deliberate contract decision.
    replacement and permissions; platform-limited assertions must be explicit.
 
 The Node functionality is implemented for the current Python contract, with
-documented parser/filesystem/argument differences and unresolved Ubuntu/Windows
-gates. No additional user-facing functionality is part of package preparation.
+documented parser/filesystem/argument differences and validated Ubuntu/Windows
+gates. No additional user-facing functionality is part of release preparation.
 
 ## npm artifact readiness (no publication)
 
-- Package root remains `node/`. Metadata uses `align-dotenv`, preparatory `0.2.0`
-  (equal to the unchanged Python reference), MIT, Geonhui Lee, GitHub URLs with
+- Package root remains `node/`. Metadata uses `align-dotenv`, prepared `0.3.0`
+  (equal to Python's authorized release metadata update), MIT, Geonhui Lee, GitHub URLs with
   repository directory `node`, CLI keywords, ESM, `engines.node >=22`, and the bin
   mapping above. No `os` restriction or runtime dependencies. `private: true`
   remains: actual npm pack/install succeeds with publication protection enabled.
@@ -432,43 +438,57 @@ gates. No additional user-facing functionality is part of package preparation.
   successful fixture bytes. Nine automated tests pass locally under Linux.
 - Required release gate is now Ubuntu/Windows only, per scope decision. macOS is
   neither validated nor claimed supported and is not artificially excluded from
-  installation. No branch CI runs observed; both workspace and packed Actions
-  results remain pending. Local WSL cannot validate Windows shims.
+  installation. Both workspace and packed Actions results passed for Node 22/24
+  on both OSes. Windows shim proof comes from Actions, never local WSL emulation.
 - Registry lookup on 2026-10-06 returned npm 404 for `align-dotenv`: no public
   package found. Reservability/ownership is not guaranteed; recheck at release.
   No name reservation, account setting, secret, tag, release or public upload made.
 
-## Future synchronized release and trusted publishing (documentation only)
+## Synchronized v0.3.0 preparation and protected publishing draft
 
-1. Close Ubuntu/Windows workspace and packed-package CI gates at the intended
-   release commit. Confirm npm name ownership/first-publication bootstrap.
-2. Select the next **joint** release version explicitly. Current `0.2.0` only
-   mirrors the already selected Python version for preparatory packing, with no
-   mismatch or independent npm version line. Future guard must require tag
-   `vX.Y.Z`, Python version, npm manifest version and lockfile root version all
-   agree before either distribution uploads. Packed tests already check current
-   Python/npm equality. Do not republish Python 0.2.0 as part of these checks.
-3. Only with authorization, remove private protection and configure npm publishing
+1. The original Ubuntu/Windows gate passed before version edits. Final release
+   preparation must also pass CI at its pushed commit. Confirm npm name ownership/
+   first-publication bootstrap; npm lookup still returned 404 on 2026-10-06.
+2. The user authorized **joint v0.3.0** metadata only after the green gate.
+   `pyproject.toml`, npm manifest and lockfile now all use `0.3.0`; Python production
+   sources remain untouched. No independent version line and no tag/release exists.
+   `scripts/check-versions.mjs` checks the controlled Python [project] section,
+   npm manifest and lockfile identity/version without dependencies. CI runs it and
+   9 guard tests; release mode additionally requires `RELEASE_TAG == vX.Y.Z`.
+   Both publishing workflows use it before any upload.
+3. Only with separate final authorization, change `private: true` to `false` and configure npm publishing
    access/owner. Prefer npm Trusted Publishing (OIDC) on GitHub-hosted runners and
    an approved `npm` environment, with `id-token: write`, exact repository/workflow
    identity and an explicit release event/version guard; never ordinary pushes.
-   Existing PyPI Trusted Publisher/workflow stays untouched. No npm workflow draft
-   was added, so nothing new can publish automatically.
+   Existing PyPI release event/tag guard/Trusted Publisher/environment are retained;
+   its build adds the shared version gate. A separate `publish-npm.yml` draft uses
+   `release: published` only and requires `ENABLE_NPM_PUBLISHING == 'true'`.
+   The variable is not enabled by this task. It validates the tagged source on
+   Ubuntu/Windows x Node 22/24, then a protected `npm` environment/OIDC-only upload.
+   The upload job independently requires explicit `private: false`, checks npm
+   >=11.5.1, rebuilds/tests/packs from the release source, and requests provenance.
+   Ordinary pushes cannot publish. No publication workflow was executed here.
 4. [Current npm guidance](https://docs.npmjs.com/trusted-publishers/) (reviewed
    2026-10-06) requires npm >=11.5.1 and Node >=22.14.0 for trusted publishing;
    use Node 24/current supported npm for the eventual publisher, independently
    of the package's runtime minimum. Public GitHub source/public npm package via
    OIDC gets automatic provenance. Exact repository.url must identify this repo.
-   Configure allowed actions deliberately: current docs recommend stage-only
-   publishing plus interactive 2FA approval for maximum security, or authorize
-   direct publishing only after review. Staging is still a public-upload action
-   and is **not** performed in this task.
+   Configure allowed actions deliberately: this draft uses direct publishing after
+   protected GitHub environment approval, so the owner must allow that action,
+   not just the default stage-only permission. Stage-only plus interactive 2FA is
+   an alternative future policy, not silently interchangeable with this draft.
+   No direct or staged upload is performed in this task.
 5. Package-settings trusted-publisher configuration/first-publication bootstrap
    requires maintainer action. If an initial interactive 2FA-authenticated bootstrap
    is necessary, authorize it separately rather than introducing a long-lived
    npm token. Then restrict token access, confirm provenance, and verify registry
-   installation. No external configuration or secret creation has occurred.
+   installation. Exact future settings: npm owner `Geonhui-Lee`, repository
+   `align-dotenv`, workflow filename `publish-npm.yml`, environment `npm`; create
+   that GitHub environment with reviewer/tag protections, confirm direct publishing
+   permission, then authorize the opt-in repository variable. Preserve/review the
+   existing `pypi` publisher. No external configuration or secret creation occurred.
 
-Current status: **STRUCTURALLY READY; CROSS-PLATFORM CI PENDING**. Retain private
-protection until explicit release preparation. Do not publish, create release tags
-or mark npm publication complete as part of this readiness task.
+Technical package status: **READY FOR NPM RELEASE** after actual required platform
+validation. Pre-release metadata/workflows are prepared but publication remains
+protected. Retain private protection until separate final release authorization;
+do not publish, create release tags or mark either distribution published here.

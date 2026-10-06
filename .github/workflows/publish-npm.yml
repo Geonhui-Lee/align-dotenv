@@ -1,0 +1,76 @@
+# Inert until explicit maintainer opt-in AND a published GitHub Release.
+# private:true remains an independent hard stop; no account settings are configured.
+name: Publish to npm (protected)
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    if: vars.ENABLE_NPM_PUBLISHING == 'true' && startsWith(github.event.release.tag_name, 'v')
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        node-version: ['22', '24']
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+      - name: Verify tag and synchronized versions
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: node scripts/check-versions.mjs --release
+      - name: Workspace tests
+        working-directory: node
+        run: npm ci
+      - working-directory: node
+        run: npm test
+      - name: Packed artifact and installed npm-bin tests
+        working-directory: node
+        run: npm run test:package
+
+  publish:
+    needs: validate
+    runs-on: ubuntu-latest
+    environment:
+      name: npm
+      url: https://www.npmjs.com/package/align-dotenv
+    permissions:
+      contents: read
+      id-token: write
+    defaults:
+      run:
+        working-directory: node
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          registry-url: https://registry.npmjs.org
+      - name: Verify synchronized release versions and private protection
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          node ../scripts/check-versions.mjs --release
+          node --input-type=module -e 'import fs from "node:fs"; if (JSON.parse(fs.readFileSync("package.json")).private !== false) throw new Error("npm publication requires explicitly authorized private:false");'
+      - name: Verify supported Trusted Publishing npm CLI
+        run: |
+          node --input-type=module -e 'import {execFileSync} from "node:child_process"; const v=execFileSync("npm",["--version"], {encoding:"utf8"}); const [a,b,c]=v.trim().split(".").map(Number); if (!(a>11 || a===11 && (b>5 || b===5 && c>=1))) throw new Error("Trusted Publishing requires npm >=11.5.1");'
+      - run: npm ci
+      - run: npm run build
+      - run: npm test
+      - run: npm run test:package
+      # OIDC only; no NODE_AUTH_TOKEN / long-lived access token.
+      - name: Publish with provenance after separate authorization
+        run: npm publish --provenance --access public

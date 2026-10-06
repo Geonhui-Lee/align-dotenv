@@ -57,7 +57,7 @@
   Python CI remains intact. The former macOS gate is retired by scope decision.
 - The Node implementation is not production-ready.
 
-## Native Node single-file layer (implemented; platform validation pending)
+## Native Node single-file layer (implemented; Ubuntu/Windows validation passed)
 
 - Added `node/src/files.ts`: strict UTF-8 with retained BOM/newline bytes,
   lstat target rejection, permitted explicit-mode template symlinks, bigint same-file
@@ -68,15 +68,14 @@
   in either input under every policy/check setting, and focused failure/link tests.
 - Added `@types/node` as a dev dependency; runtime dependencies remain zero.
 - Filesystem-phase baseline under WSL/Linux: 176 Node tests and 47 Python tests passed.
-  Ubuntu/Windows GitHub Actions results remain pending; macOS is out of release scope.
+  Ubuntu/Windows GitHub Actions results now pass; macOS is out of release scope.
   See [NODE_PORT.md](NODE_PORT.md) for Windows rename/mode limits, diagnostic
   differences, TOCTOU caveats and validation status. Do not infer Windows/macOS
   correctness from WSL results; macOS is not currently tested or claimed supported.
 - The project phase below reuses common filesystem primitives; existing single-file
-  public behavior/tests remain intact. Review pending filesystem CI before claiming
-  cross-platform parity.
+  public behavior/tests remain intact. Cross-platform validation is recorded below.
 
-## Native Node project layer (implemented; platform validation pending)
+## Native Node project layer (implemented; Ubuntu/Windows validation passed)
 
 - `node/src/project.ts` implements recursive template discovery, all five excluded
   directories, directory-symlink avoidance, deterministic pathlib-like ordering,
@@ -92,15 +91,16 @@
 - 87 new project tests: 54 shared-fixture checks and 33 focused temporary-tree tests.
   Locally under WSL/Linux, all 263 Node tests and 47 Python tests pass. A one-off
   150-tree discovery comparison matches Python (seed `20261006`).
-- Actions Ubuntu: pending. Windows: pending. macOS: outside tested matrix. No branch runs observed
-  before this phase; prior filesystem gate and new project gate are both unresolved.
+- Actions Ubuntu: passed. Windows: passed. macOS: outside tested matrix.
+  The authoritative run is recorded under synchronized release preparation below.
   Current Ubuntu/Windows Node 22/24 CI includes the project suite. New Windows
   symlink fixture skips require actual capability failure; POSIX mode assertion skips
-  are explicit. Python CI and all Python production sources/version remain unchanged.
+  are explicit. Python production sources remain unchanged; the later authorized
+  synchronized metadata update is recorded below.
 - CLI and package readiness are implemented below; publication and releases remain
   **not performed**.
 
-## Native Node CLI layer (implemented privately; platform validation pending)
+## Native Node CLI layer (implemented privately; Ubuntu/Windows validation passed)
 
 - `node/src/cli.ts` orchestrates existing file/project modules through async `main`;
   a small cwd/output context supports direct tests. `bin.ts` retains a shebang and
@@ -117,18 +117,19 @@
   suites. A one-off 182-scenario Python-vs-Node CLI comparison passes for exit codes,
   bytes and stable output. Native Windows CRLF output is specified/tested by platform,
   not locally validated under WSL.
-- Actions Ubuntu: pending. Windows: pending. macOS: outside tested matrix. No branch runs found;
-  prior filesystem/project and new CLI cross-platform gates remain unresolved.
+- Actions Ubuntu: passed. Windows: passed. macOS: outside tested matrix;
+  filesystem/project/CLI and installed npm-shim gates passed in real Actions.
   The Ubuntu/Windows matrix automatically includes all CLI tests. Python CI is
   unchanged. Runtime dependencies remain zero; workspace remains private.
 - Package readiness is now implemented below, without production behavior changes.
 
-## Native npm package readiness (structurally ready; Actions pending)
+## Native npm package readiness (READY FOR NPM RELEASE; publication protected)
 
 - `node/package.json`: production metadata, name `align-dotenv`, MIT/author/GitHub
   URLs, repository subdirectory, `engines >=22`, compiled `align-dotenv` bin and
   restricted dist/LICENSE file list. `private: true` remains; pack/install works.
-  Preparatory npm version `0.2.0` equals Python, with no Python version change.
+  Prepared npm version `0.3.0` equals Python after the explicitly authorized metadata
+  update; no Python production behavior changes.
 - Byte-identical `node/LICENSE`; npm-facing README clearly marks publication as
   not performed and documents installation/CLI/safety/platform/exit-code behavior.
 - Real artifact: 17 files (7 JS, 7 declarations, README, LICENSE, package.json).
@@ -142,19 +143,40 @@
   separate from runtime minimum. Runtime dependencies still zero; dev deps unchanged.
 - CI has distinct workspace/packed steps on Ubuntu/Windows and Node 22/24. macOS
   is not in the tested release matrix; no `os` restriction added. Local WSL results
-  do not validate Windows. Actions Ubuntu: pending. Windows: pending. No runs found.
+  do not validate Windows. Actions Ubuntu: passed. Windows: passed.
 - Name lookup 2026-10-06: npm 404, no public package found; ownership/reservability
   not guaranteed and must be reconfirmed. No package/name reservation performed.
-- Joint release guard will require tag == Python == npm == lockfile version;
-  current packed tests check Python/npm equality. Final future release version is
-  not yet selected. No independent versioning or release bump introduced.
-- Trusted Publishing/provenance plan documented in NODE_PORT.md (OIDC/protected
-  environment/explicit release/maintainer bootstrap); no npm workflow, secrets,
-  settings or upload activated. Existing PyPI publishing workflow unchanged.
-- Status: **STRUCTURALLY READY; CROSS-PLATFORM CI PENDING**. Remaining steps: close
-  both OS gates, confirm name/access, choose synchronized version, separately
-  authorize removal of private and publisher/bootstrap setup. No publication,
-  release commit, tag or GitHub release performed.
+- Joint release guard now requires tag == Python == npm == lockfile version in
+  release mode. `0.3.0` was selected explicitly after the platform gate passed.
+- Trusted Publishing/provenance draft in `publish-npm.yml` is release-only and
+  requires explicit variable opt-in plus non-private manifest, protected environment
+  and tag/version checks. Existing PyPI protections are retained and strengthened
+  with the shared version guard. No secrets, settings or uploads activated.
+- Status: **READY FOR NPM RELEASE**, with private protection retained. Final
+  authorization, name/access/bootstrap and account-side publisher setup remain.
+
+## Synchronized v0.3.0 preparation (not released)
+
+- Committed port: `926d7aef877db7222ba728c9a50f04641e38777b` on
+  `chore/node-port-behavioral-contract`, pushed to origin (not develop).
+- [CI 37423326194](https://github.com/Geonhui-Lee/align-dotenv/actions/runs/37423326194)
+  passed before any version bump: Ubuntu/22, Ubuntu/24, Windows/22, Windows/24.
+  All packed steps passed, including installed `.cmd`/npm exec proof on Windows.
+  Ubuntu: 378 source + 9 packed tests, no skips. Windows: 375 source passed,
+  3 POSIX permission assertions skipped, all 9 packed passed, no packed skips.
+  Python 3.10–3.14 and packaging passed. No CI failures or safety weakening.
+- Python/npm/lockfile versions prepared as `0.3.0` only after that real green gate.
+  `scripts/check-versions.mjs` and 9 tests provide dependency-free CI/release reuse.
+- Root/Node README position npm as a first-class development CLI, not a supported
+  public JS import API. Official tested Node OSes: Linux/Ubuntu and Windows; macOS
+  excluded from test scope without metadata installation restrictions.
+- Manual steps: confirm npm name/owner/first-package bootstrap; configure Trusted
+  Publisher `Geonhui-Lee / align-dotenv / publish-npm.yml / npm` with direct action
+  permission; create protected npm GitHub environment; only after separate approval
+  change private to false and enable `ENABLE_NPM_PUBLISHING=true`, then authorize
+  the explicit v0.3.0 tag/release. No account changes, publication, tags or releases
+  were performed. Both distributions' upload success must be verified before
+  marking v0.3.0 released; they are not a cross-registry transaction.
 
 ## Later ideas (not part of v0.2.0)
 

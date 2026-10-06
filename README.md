@@ -1,12 +1,18 @@
 # align-dotenv
 
-Keep your `.env` files aligned with their templates — without losing local values.
+Keep local dotenv files aligned with their templates without losing local values.
 
 The template controls structure and known variables. Your local file controls existing
 values and whether each variable is active or commented out. Unknown local variables
 are kept by default. Unsupported local syntax causes a safe failure, not data loss.
 
 ## Install
+
+Choose the ecosystem that fits your development tooling. Both distributions expose
+the same `align-dotenv` CLI; npm is a development-time tool, not a promised public
+JavaScript library API.
+
+### Python
 
 Python 3.10–3.14 is supported.
 
@@ -25,6 +31,36 @@ python -m pip install .
 # or
 uv tool install .
 ```
+
+### Node.js / npm (prepared for v0.3.0; not yet published)
+
+Node 22+ is supported. Workspace and packed/fresh-consumer CLI tests pass on
+Linux/Ubuntu and Windows with Node 22 and 24. WSL is used for local Linux validation.
+macOS is not part of the tested Node release matrix; installation is not blocked.
+
+After separately authorized npm publication:
+
+```bash
+npm install --save-dev align-dotenv
+npx align-dotenv
+npx align-dotenv --check
+```
+
+Or add development scripts:
+
+```json
+{
+  "scripts": {
+    "env:align": "align-dotenv",
+    "env:check": "align-dotenv --check"
+  }
+}
+```
+
+The repository prepares synchronized Python/npm version `0.3.0`; neither
+distribution's 0.3.0 release has been published. npm remains protected with
+`private: true`. See [node/README.md](node/README.md) for local tarball validation
+and Node-specific limitations. No stable JavaScript imports are offered initially.
 
 ## Use
 
@@ -121,7 +157,8 @@ key appears repeatedly.
 The existing target must be a regular file, not a symlink or the template itself.
 Known lines use the template's line endings and final newline; unknown lines kept
 by default retain their original representation, so mixed endings are possible.
-Changes replace the target atomically in its directory, preserve its mode bits,
+Changes replace the target atomically in its directory, preserve mode bits where meaningful
+(Windows does not reproduce POSIX permissions),
 and skip the write if already aligned.
 
 ## Develop
@@ -129,6 +166,10 @@ and skip the write if already aligned.
 ```bash
 PYTHONPATH=src python -m unittest discover -s tests -v
 python -m compileall -q src tests
+npm --prefix node ci
+npm --prefix node test
+npm --prefix node run test:package
+node scripts/check-versions.mjs
 ```
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for contributor guidance.

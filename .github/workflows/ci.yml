@@ -50,6 +50,10 @@ jobs:
           cache: npm
           cache-dependency-path: node/package-lock.json
       - run: npm ci
+      - name: Verify synchronized distribution versions
+        run: node ../scripts/check-versions.mjs
+      - name: Test version guard
+        run: node --test ../scripts/check-versions.test.mjs
       - name: Workspace tests
         run: npm test
       - name: Packed artifact and installed npm-bin tests

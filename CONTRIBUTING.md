@@ -47,21 +47,44 @@ may ship; sources/tests/shared fixtures/planning files must stay out of the tarb
 
 ## Future joint release (maintainers; not enabled)
 
-The current preparatory npm version equals Python's `0.2.0`; it does not authorize
-republishing Python or publishing npm. Choose the next version explicitly, then
+The prepared Python and npm versions are `0.3.0`; this does not authorize
+publishing either distribution. The Ubuntu/Windows Node 22/24 gate passed in
+[Actions run 37423326194](https://github.com/Geonhui-Lee/align-dotenv/actions/runs/37423326194).
+For an explicitly authorized future release,
 require `vX.Y.Z == pyproject.toml == node/package.json == node/package-lock.json`
-before a future joint GitHub release. Package validation already checks Python/npm
-version equality. Both Ubuntu and Windows workspace/packed gates must pass.
+before a future joint GitHub release. `node scripts/check-versions.mjs` validates
+all manifest/lockfile versions in CI; `--release` additionally requires the matching
+`RELEASE_TAG` environment variable, and `--tag v0.3.0` is useful locally.
 
-The existing `publish.yml` PyPI workflow is unchanged: only explicit GitHub
-releases whose tags match Python's version publish, using the `pypi` environment
-and Trusted Publisher. A future npm workflow should use a protected `npm`
-environment, explicit release event, tag/version checks, GitHub-hosted runner,
-`id-token: write`, and npm Trusted Publishing with automatic provenance from this
-public repository. Do not add a push-triggered publisher or long-lived npm token.
+`publish.yml` retains the existing PyPI explicit-release event, tag check, `pypi`
+environment and Trusted Publisher. It adds the stronger shared Python/npm version
+guard. Separate `publish-npm.yml` uses the same explicit release event, reruns both
+OS/Node matrix gates at the tagged source, then a protected `npm` environment and
+OIDC/provenance publisher. It is inert until the repository variable
+`ENABLE_NPM_PUBLISHING` equals `true`, and refuses to publish unless the manifest
+explicitly says `private: false`. Ordinary pushes cannot publish.
 
-Keep `private: true` until separately authorized publication preparation. Confirm
-name ownership and first-publication bootstrap with the maintainer; no npm account
-settings, secrets or publishers have been configured. Current trusted-publishing
-requirements and remaining steps are in `.agents/NODE_PORT.md`. Never publish,
-create tags/releases, or mark publication complete during package validation.
+Manual steps after separate final authorization:
+
+1. Reconfirm npm name/access and initial-publication bootstrap; a registry 404
+   does not guarantee reservability. No name is reserved by this checkout.
+2. Configure npm's Trusted Publisher: owner **Geonhui-Lee**, repository
+   **align-dotenv**, workflow **publish-npm.yml**, environment **npm**. This draft
+   uses direct publishing, so explicitly permit that action (not only stage publish).
+   Confirm any first-package bootstrap requirement with the package owner; if an
+   initial interactive 2FA publish is necessary, authorize it separately.
+3. Create/protect the GitHub **npm** environment with required reviewer approval
+   and release-tag restrictions. Restrict tag changes and npm traditional token
+   access; prefer 2FA and disallow long-lived publishing tokens.
+4. After reviewing green final CI, separately authorize changing the one manifest
+   line `"private": true` to `"private": false`, refresh the lockfile, and set
+   `ENABLE_NPM_PUBLISHING=true`. Neither protection was changed here.
+5. Only then authorize the `v0.3.0` tag/explicit GitHub release. No tag or release
+   exists from this work. Verify both registries/provenance afterward before
+   marking publication complete. Parallel distribution uploads are not atomic;
+   handle a one-registry failure without republishing an existing version.
+
+Current official npm OIDC requirements are npm >=11.5.1 and Node >=22.14.0;
+the draft uses Node 24 and checks the npm CLI version, with no npm access token.
+See `.agents/NODE_PORT.md` for source guidance and CI evidence. No external account
+settings, environments, variables, credentials or npm publisher were configured.

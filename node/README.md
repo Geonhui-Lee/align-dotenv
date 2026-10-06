@@ -9,14 +9,16 @@ and commented/active state. Zero runtime dependencies.
 
 The Node implementation is functionally complete against the Python v0.2.0
 reference, with documented limitations. This npm package is **not published**;
-`private: true` still prevents accidental publication. The preparatory version
-`0.2.0` matches Python, not a newly authorized release. A future joint release
-will choose one version for both distributions.
+`private: true` still prevents accidental publication. Version `0.3.0` is prepared
+for the future synchronized Python/npm release; no tag or release has been created.
+The supported contract is initially the development-time CLI, not stable public
+JavaScript imports.
 
 Node.js **22 or later** is required. The release test matrix is **Linux/Ubuntu
 (including WSL development environments) and Windows**, on Node 22 and 24.
-Local validation is WSL/Linux only; Ubuntu/Windows Actions validation is pending
-until these changes run in CI. macOS is not currently part of the tested release
+Workspace and packed installation/bin validation passed on both OSes in
+[GitHub Actions](https://github.com/Geonhui-Lee/align-dotenv/actions/runs/37423326194).
+Local validation is WSL/Linux only. macOS is not currently part of the tested release
 matrix. There is no OS installation restriction in package metadata.
 
 ## Installation and usage
@@ -131,6 +133,7 @@ npm --prefix node ci
 npm --prefix node run build
 npm --prefix node test
 npm --prefix node run test:package
+node scripts/check-versions.mjs
 ```
 
 `test:package` builds, runs real `npm pack --json`, inspects the gzip/tar payload,
@@ -146,6 +149,8 @@ a promised public library API. No sources, tests, fixtures, dependencies,
 sourcemaps or planning files are included. `prepack` rebuilds; consumers never
 need the compiler. TypeScript and Node typings are development-only dependencies.
 
-Publication is not enabled here. Remaining gates include successful Ubuntu and
-Windows packed CI, final synchronized version selection, maintainer removal of
-`private`, and separately authorized trusted publishing/provenance setup.
+Publication is not enabled here. Remaining authorization/account-side steps are
+documented in repository `CONTRIBUTING.md`: package/name ownership, trusted publisher
+and protected npm environment setup, explicit `private: false`, and the opt-in
+`ENABLE_NPM_PUBLISHING=true` repository variable. None of those settings was changed.
+The release-only workflow rechecks tag/version and both OSes before any future upload.
