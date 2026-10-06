@@ -2,13 +2,14 @@
 
 ## Decision and evidence boundary
 
-Select **PyInstaller one-file**, provisionally gated on actual Linux x86_64 and
-Windows x86_64 validation. Simpler packaging of the existing CPython interpreter
+Select **PyInstaller one-file**, now validated by actual Linux x86_64 and
+Windows x86_64 CI. Simpler packaging of the existing CPython interpreter
 is preferable to a C compilation pipeline for this small, stdlib-only CLI.
 Neither a successful build nor source-level reasoning proves filesystem parity.
 Nuitka is a credible alternative, not a demonstrated incompatibility.
 
-This is not a release, version bump, npm migration, or completed milestone.
+Phase 1 native validation is complete at the evidence commit below. This is not
+a release, version bump or npm migration.
 Python source is canonical; native TypeScript remains unchanged. Phase 2 may not
 start until both required native executable gates pass at the reviewed commit.
 
@@ -80,8 +81,8 @@ prototype is not published. PyInstaller is **not** described as entirely Apache.
 
 Selection is based on lower maintenance and preserving the existing interpreter
 execution model, not size or unmeasured performance claims. Revisit if measured
-startup/distribution needs justify compilation. Windows correctness is pending,
-not inferred from the tool supporting Windows.
+startup/distribution needs justify compilation. Windows correctness is supported
+by actual artifact tests below, not inferred from the tool supporting Windows.
 
 ## Build and validate
 
@@ -159,10 +160,15 @@ No release, tag or package publication step is added.
 
 Local host is WSL Linux **ARM64**, not either required x86_64 target. PyInstaller
 6.20.0 / hooks 2026.4 / CPython 3.13.15 builds here; all reported local results
-are developmental evidence only. Required Ubuntu x64 and Windows x64 CI is pending
-until these changes are committed/pushed and observed passing. Do not interpret
-existing v0.3.1 CI as executable validation. Working tree is intentionally not
-claimed clean; pre-existing uncommitted work was present when this task started.
+are developmental evidence only. The focused foundation commit is
+`6d62a63f82510c3f111ba7b2f96c37f0ddc5ad9c`, pushed to `develop` before the instruction
+to use a separate branch. Remaining work moved to
+`build/standalone-executable-foundation`; no development-branch history was
+rewritten. Both x64 targets passed
+in [run 37449635772](https://github.com/Geonhui-Lee/align-dotenv/actions/runs/37449635772);
+this actual native executable matrix. Do not interpret existing v0.3.1 CI as
+executable validation. The unrelated, pre-existing `uv.lock` remains untracked
+and untouched; it is not required for these pinned builds.
 
 ### Measured development comparison (not a supported-platform gate)
 
@@ -191,7 +197,64 @@ The temporary entry script imports `align_dotenv.cli.main` and exits with its re
 Normal Python suite: **48 passed**, including the added writer-order safety test;
 24 artifact tests skip when no artifact is configured. Existing **378 Node
 workspace + 9 packed + 9 version-guard tests** pass locally on Node 22.23.3 and
-26.9.0; Node 22/24 required cross-platform gates remain the unchanged CI matrix. No production code,
-package versions or release publishers changed. The Linux/Windows x64 artifact
-sizes and CI outcomes are **not available yet**. Neither required platform has
-been validated by this local ARM64 work, and Phase 1 is **not complete**.
+26.9.0. Continuation validation also passed on Node 24.21.0. The unchanged
+[baseline CI](https://github.com/Geonhui-Lee/align-dotenv/actions/runs/37449635770)
+passed Python 3.10–3.14, packaging, and Ubuntu/Windows Node 22/24 at the foundation
+commit. Ubuntu Node passes 378 workspace tests; Windows passes 375 with three
+existing POSIX-mode skips (`Windows chmod cannot represent POSIX owner/group
+permissions`). Packed-package and version-guard tests each pass all nine on both
+OSes. No production code, package versions or release publishers changed.
+
+### Native CI inspection
+
+Ubuntu 24.04 x86_64: [job 112222789710](https://github.com/Geonhui-Lee/align-dotenv/actions/runs/37449635772/job/112222789710)
+passed 48 normal Python tests (24 unconfigured artifact tests skipped), all 24
+actual artifact tests with zero skips, external help, and the artifact-only Ubuntu
+container without Python. Linux symlink/hard-link, permissions, cleanup and
+preflight tests passed. ELF64 machine 62 and `file` confirm x86_64.
+
+Windows Server 2022 x86_64 (10.0.20348):
+[job 112222789442](https://github.com/Geonhui-Lee/align-dotenv/actions/runs/37449635772/job/112222789442)
+passed the same 48 normal Python tests (24 unconfigured artifact tests skipped),
+all 24 artifact tests with **zero skips**, external help, and PE AMD64 inspection.
+Actual target symlinks, hard-link same-file detection, existing-file replacement,
+locked-target refusal, temporary cleanup, spaces, cwd/extraction isolation and
+0/1/2 exit semantics passed. POSIX permission bits are not asserted on Windows;
+captured native modes are still compared. No link/locking/UTF-8 safety test was
+skipped or weakened. The runtime embeds Python; artifact subprocesses run with
+empty PATH and invalid PYTHONHOME/PYTHONPATH. A Windows machine with all Python
+installations physically removed is not an additional claimed validation target.
+
+Build versions: CPython **3.13.15**, PyInstaller **6.20.0**, hooks **2026.4**.
+Artifact at the foundation commit:
+
+| Target | Filename | Bytes | SHA-256 |
+| --- | --- | --- | --- |
+| Ubuntu 24.04 x86_64 | `align-dotenv-v0.3.1-linux-x64` | 21,353,528 | `a0b6e8673bade6c2a6791bf34989c1692ecf376e68219c3c7d2af6ec1e903535` |
+| Windows Server 2022 x86_64 | `align-dotenv-v0.3.1-windows-x64.exe` | 8,307,774 | `a9f33fe77e44c010e45fd1769ce3902768704312703aa1b5be0557cf19c9b674` |
+
+The Ubuntu build/runtime host has **glibc 2.39**, with the ELF loader
+`/lib64/ld-linux-x86-64.so.2`. Inspection of the extracted bundled
+`libpython3.13.so.1.0` finds **GLIBC_2.38** requirements: the bootloader's older
+GLIBC_2.14 symbols do **not** establish the complete binary's minimum libc.
+Only Ubuntu 24.04/glibc 2.39 is validated, not all newer/older Linux distributions,
+Ubuntu 22.04, Alpine/musl or an arbitrary glibc >=2.38 environment.
+
+The x64 Linux artifact is larger than the ARM64 development artifact because the
+native build/runtime inputs differ; size was never the technology-selection gate.
+No behavioral difference was found in the supported-target fixture/safety gates.
+Windows subprocess startup made the same suite slower (~226 s vs Ubuntu ~92 s
+and local ARM64 ~60 s); this is not semantic drift or a reason to skip tests.
+CI retention is seven days; artifact metadata/checksums are inspection records,
+not a GitHub Release. Downloaded artifacts were independently checked with `file`
+and SHA-256 and agree with their metadata.
+
+The evidence reconciliation also makes the Linux Python-free consumer assertion
+fail closed with an explicit `if ...; then exit 1; fi`: shell negation alone is
+not an errexit assertion. It changes CI test infrastructure only, not the binary
+or Python behavior. Every subsequent pushed commit must rerun both native gates;
+do not infer validation of an untested revision from this recorded evidence.
+
+Remaining work is distribution/launcher design (Phase 2 npm), signatures/AV,
+license notices, checksummed release automation and broader OS portability.
+None is silently included in this milestone or advertised as already proven.

@@ -86,8 +86,10 @@ jobs:
           docker run --rm --network none \
             --mount "type=bind,source=$ALIGN_DOTENV_EXE,target=/artifact/align-dotenv,readonly" \
             ubuntu:24.04 sh -eu -c '
-              ! command -v python
-              ! command -v python3
+              if command -v python || command -v python3; then
+                echo "Consumer image unexpectedly contains Python" >&2
+                exit 1
+              fi
               mkdir "/project with spaces"
               cd "/project with spaces"
               printf "# Heading\nKEY=default\n" > .env.example

@@ -121,17 +121,25 @@ behavioral contract on real platforms.
 - Any new CLI feature (including `--diff`).
 - Any behavioral change unless required to fix a pre-existing bug.
 
-**Technology selection:** PyInstaller one-file is selected, subject to the actual
-required executable gates. The rationale and
+**Technology selection:** PyInstaller one-file is selected and validated on both
+required executable targets. The rationale and
 full evaluation are in `.agents/EXECUTABLE_ARCH.md`.
 
-**Status:** In progress. Do not claim Phase 1 complete until Linux x86_64 and
-Windows x86_64 CI gates have actually passed.
+**Status:** Phase 1 native foundation validated at
+`6d62a63f82510c3f111ba7b2f96c37f0ddc5ad9c`:
+[executable CI](https://github.com/Geonhui-Lee/align-dotenv/actions/runs/37449635772)
+passed Ubuntu 24.04 x86_64 and Windows Server 2022 x86_64, with all 24 artifact
+tests and zero artifact skips on each target. Python, Node and packaging
+[baseline CI](https://github.com/Geonhui-Lee/align-dotenv/actions/runs/37449635770)
+also passed at that exact commit. Artifacts are retained for CI inspection only;
+no package, tag or release was published. Details/checksums/limits are in
+`EXECUTABLE_ARCH.md`. Subsequent commits must pass the native gates again before
+being treated as validated; workflow configuration alone never proves readiness.
 
-The current local machine is Linux ARM64, so local executable success cannot close
-either required x86_64 gate. Native builds and subprocess validation are configured
-in `.github/workflows/executable.yml`; observed results, not configuration alone,
-determine readiness. Version metadata remains 0.3.1 until release preparation.
+The local WSL machine remains Linux ARM64; those development results are separate
+from the actual x86_64 CI evidence. Version metadata remains 0.3.1 until release
+preparation. npm migration has not begun and is not part of Phase 1. Follow-up
+work is on `build/standalone-executable-foundation`, not directly on `develop`.
 
 ### Phase 2 — npm executable wrapper (future)
 
