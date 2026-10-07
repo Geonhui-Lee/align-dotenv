@@ -35,6 +35,8 @@ jobs:
         run: python scripts/check-python-package.py dist
       - name: Release assembly negative guards (synthetic inputs, no publication)
         run: python -m unittest discover -s scripts -p test_release_tools.py -v
+      - name: Windows OS-runtime collection policy guards
+        run: python -m unittest discover -s scripts -p test_executable_inventory.py -v
       - uses: actions/upload-artifact@v4
         with:
           name: python-distributions-${{ github.sha }}

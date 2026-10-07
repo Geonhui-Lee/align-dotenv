@@ -68,7 +68,7 @@ def artifact_name(version: str) -> str:
     return name
 
 
-def build(root: Path, output_dir: Path) -> Path:
+def build(root: Path, output_dir: Path, evidence_dir: Path, windows_runtime_policy: str = "system") -> Path:
     """Build the executable; return the final artifact path."""
     version = read_version(root)
     name = artifact_name(version)
@@ -94,25 +94,32 @@ def build(root: Path, output_dir: Path) -> Path:
         work_dir = Path(tmpdir) / "work"
         spec_dir = Path(tmpdir) / "spec"
 
+        # Generate PyInstaller's standard onefile spec, then apply our target-OS
+        # policy before EXE/PKG consumes Analysis.binaries. Never edit a built EXE.
+        from PyInstaller.building.makespec import main as makespec
+
+        strip = platform.system() == "Linux"
+        if strip and shutil.which("strip") is None:
+            raise RuntimeError("Linux executable builds require binutils strip")
+        spec = Path(makespec([str(entry)], name="align-dotenv", onefile=True,
+                             noupx=True, strip=strip, specpath=str(spec_dir),
+                             pathex=[str(root / "src")]))
+        policy = windows_runtime_policy
+        injection = (
+            f"import runpy\n"
+            f"_inventory = runpy.run_path({str(root / 'scripts/executable-inventory.py')!r})\n"
+            f"_inventory['record_analysis'](a, {str(evidence_dir)!r}, {policy!r})\n\n"
+        )
+        text = spec.read_text(encoding="utf-8")
+        assert text.count("pyz = PYZ(") == 1
+        spec.write_text(text.replace("pyz = PYZ(", injection + "pyz = PYZ("), encoding="utf-8")
         cmd = [
             sys.executable, "-m", "PyInstaller",
-            "--onefile",
-            "--noupx",
             "--noconfirm",
-            "--name", "align-dotenv",
             "--distpath", str(dist_dir),
             "--workpath", str(work_dir),
-            "--specpath", str(spec_dir),
-            # Ensure the package source is on sys.path during analysis.
-            "--paths", str(root / "src"),
-            str(entry),
+            str(spec),
         ]
-        if platform.system() == "Linux":
-            # Remove CPython/vendor DWARF build paths as well as debug bulk.
-            # Never strip PE binaries: PyInstaller does not recommend it there.
-            if shutil.which("strip") is None:
-                raise RuntimeError("Linux executable builds require binutils strip")
-            cmd.insert(-1, "--strip")
 
         print(f"  Running: {' '.join(cmd)}")
         result = subprocess.run(cmd, cwd=root)
@@ -135,6 +142,10 @@ def build(root: Path, output_dir: Path) -> Path:
             dest.chmod(dest.stat().st_mode | 0o111)  # ensure executable bit
 
     print(f"  Built: {dest} ({dest.stat().st_size // 1024} KiB)")
+    import runpy
+    runpy.run_path(str(root / "scripts/executable-inventory.py"))["record_archive"](
+        dest, evidence_dir, windows_runtime_policy
+    )
     import PyInstaller
 
     commit = subprocess.check_output(
@@ -160,6 +171,14 @@ def main() -> None:
         description="Build a standalone align-dotenv executable with PyInstaller."
     )
     parser.add_argument(
+        "--evidence-dir", default="dist/licensing",
+        help="runner evidence directory, never included in release payloads"
+    )
+    parser.add_argument(
+        "--windows-runtime-policy", choices=("system", "bundled", "no-vcr"), default="system",
+        help="system excludes OS UCRT/API sets; other policies are audit probes only"
+    )
+    parser.add_argument(
         "--output-dir", default="dist/executable",
         help="directory to place the final artifact (default: dist/executable)"
     )
@@ -182,7 +201,10 @@ def main() -> None:
         )
         sys.exit(1)
 
-    build(root, output_dir)
+    evidence_dir = Path(args.evidence_dir).resolve()
+    if evidence_dir == output_dir.resolve() or output_dir.resolve() in evidence_dir.parents:
+        parser.error("evidence must be outside the artifact directory")
+    build(root, output_dir, evidence_dir, args.windows_runtime_policy)
 
 
 if __name__ == "__main__":

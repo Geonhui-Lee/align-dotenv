@@ -32,6 +32,37 @@ jobs:
         run: python -m compileall -q src tests scripts/build-executable.py
       - name: Build native one-file executable
         run: python scripts/build-executable.py --output-dir dist/executable
+      - name: Windows original-collection and no-VCR diagnostic builds (never packaged)
+        if: runner.os == 'Windows'
+        run: |
+          python scripts/build-executable.py --windows-runtime-policy bundled --output-dir dist/runtime-probes/bundled --evidence-dir dist/runtime-probe-evidence/bundled
+          python scripts/build-executable.py --windows-runtime-policy no-vcr --output-dir dist/runtime-probes/no-vcr --evidence-dir dist/runtime-probe-evidence/no-vcr
+          New-Item -ItemType Directory -Path dist/runtime-probes/system
+          Copy-Item dist/executable/*.exe dist/runtime-probes/system/
+          Copy-Item scripts/test-windows-clean-runtime.ps1 dist/runtime-probes/
+      - name: Unmodified Windows Server 2022 without Python/VC redist or runtime network
+        if: runner.os == 'Windows'
+        run: |
+          docker pull mcr.microsoft.com/windows/servercore:ltsc2022
+          if ($LASTEXITCODE -ne 0) { throw 'Server 2022 container pull failed' }
+          docker image inspect mcr.microsoft.com/windows/servercore:ltsc2022
+          docker run --rm --network none --mount "type=bind,source=$((Resolve-Path dist/runtime-probes).Path),target=C:\artifact,readonly" mcr.microsoft.com/windows/servercore:ltsc2022 powershell -NoProfile -File C:\artifact\test-windows-clean-runtime.ps1
+          if ($LASTEXITCODE -ne 0) { throw 'Clean OS runtime validation failed' }
+      - name: Retain Windows diagnostic evidence only
+        if: always() && runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-runtime-probes-${{ github.sha }}
+          path: dist/runtime-probe-evidence/**
+          if-no-files-found: error
+          retention-days: 30
+      - name: Retain collection and archive licensing evidence (not release payload)
+        uses: actions/upload-artifact@v4
+        with:
+          name: licensing-${{ matrix.os }}-${{ github.sha }}
+          path: dist/licensing/*
+          if-no-files-found: error
+          retention-days: 30
       - name: Select exactly one x64 artifact
         shell: python
         run: |
