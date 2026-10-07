@@ -3,6 +3,7 @@
 import hashlib
 import json
 import platform
+import re
 import subprocess
 import sys
 import sysconfig
@@ -28,6 +29,9 @@ def pe_details(data):
         "product_version": strings.get("ProductVersion"),
         "company": strings.get("CompanyName"),
         "imports": sorted({entry.dll.decode() for entry in getattr(pe, "DIRECTORY_ENTRY_IMPORT", [])}),
+        "forwarded_libraries": sorted({symbol.forwarder.decode().split(".")[0] + ".dll"
+                                       for symbol in getattr(getattr(pe, "DIRECTORY_ENTRY_EXPORT", None), "symbols", [])
+                                       if symbol.forwarder}),
     }
     pe.close()
     return result
@@ -47,6 +51,15 @@ def record_analysis(analysis, output, policy):
             else:
                 query = subprocess.run(["dpkg-query", "-S", str(path.resolve())], capture_output=True, text=True)
                 row["system_package"] = query.stdout.strip() or None
+                dynamic = subprocess.check_output(["readelf", "-d", str(path)], text=True)
+                row["imports"] = re.findall(r"\(NEEDED\).*\[(.*?)\]", dynamic)
+                if row["system_package"]:
+                    package = row["system_package"].split(":")[0]
+                    row["system_package_version"] = subprocess.check_output(
+                        ["dpkg-query", "-W", "-f=${Version}", package], text=True
+                    )
+                    copyright_file = Path("/usr/share/doc") / package / "copyright"
+                    row["system_package_copyright"] = copyright_file.read_text() if copyright_file.is_file() else None
         row["excluded"] = sys.platform == "win32" and (
             policy != "bundled" and system_runtime(name)
             or policy == "no-vcr" and name.lower() == "vcruntime140.dll"
@@ -54,7 +67,7 @@ def record_analysis(analysis, output, policy):
         rows.append(row)
     for row in rows:
         row["importers"] = sorted(r["filename"] for r in rows if row["filename"].lower() in
-                                  [dep.lower() for dep in r.get("imports", [])])
+                                  [dep.lower() for dep in r.get("imports", []) + r.get("forwarded_libraries", [])])
     import ssl
     import zlib
     import _decimal
@@ -90,4 +103,9 @@ def record_archive(artifact, output, policy):
     report = dict(filename=artifact.name, bytes=artifact.stat().st_size,
                   sha256=hashlib.sha256(artifact.read_bytes()).hexdigest(), entries=rows,
                   modules=sorted(archive.open_embedded_archive("PYZ.pyz").toc))
+    if sys.platform == "win32":
+        report["bootloader"] = pe_details(artifact.read_bytes())
+    else:
+        dynamic = subprocess.check_output(["readelf", "-d", str(artifact)], text=True)
+        report["bootloader"] = dict(imports=re.findall(r"\(NEEDED\).*\[(.*?)\]", dynamic))
     (Path(output) / "archive.json").write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")

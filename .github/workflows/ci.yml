@@ -37,6 +37,8 @@ jobs:
         run: python -m unittest discover -s scripts -p test_release_tools.py -v
       - name: Windows OS-runtime collection policy guards
         run: python -m unittest discover -s scripts -p test_executable_inventory.py -v
+      - name: Verbatim upstream license text guards
+        run: python -m unittest discover -s scripts -p test_license_notices.py -v
       - uses: actions/upload-artifact@v4
         with:
           name: python-distributions-${{ github.sha }}

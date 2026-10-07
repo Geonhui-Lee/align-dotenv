@@ -8,6 +8,7 @@ from pathlib import Path
 from types import CodeType
 
 from PyInstaller.archive.readers import CArchiveReader
+import PyInstaller
 
 
 def main():
@@ -28,6 +29,12 @@ def main():
         payload = archive.extract(name)
         if payload:
             assert not any(marker in payload for marker in encoded), "unpacked path/fixture leak"
+        if name.startswith(("pyimod", "pyiboot", "pyi_rth_")):
+            directory = "hooks/rthooks" if name.startswith("pyi_rth_") else "loader"
+            source = Path(PyInstaller.__file__).parent / directory / (name + ".py")
+            code = marshal.loads(payload)
+            assert source.is_file(), "unidentified embedded PyInstaller runtime file"
+            assert code == compile(source.read_bytes(), code.co_filename, "exec", optimize=0), "embedded PyInstaller runtime source mismatch"
     modules = archive.open_embedded_archive("PYZ.pyz")
     for name in modules.toc:
         code = modules.extract(name)
