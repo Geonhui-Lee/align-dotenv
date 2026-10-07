@@ -103,7 +103,7 @@ def build(root: Path, output_dir: Path, evidence_dir: Path, windows_runtime_poli
             raise RuntimeError("Linux executable builds require binutils strip")
         spec = Path(makespec([str(entry)], name="align-dotenv", onefile=True,
                              noupx=True, strip=strip, specpath=str(spec_dir),
-                             pathex=[str(root / "src")]))
+                             pathex=[str(root / "src")], shorthand_manifest=None))
         policy = windows_runtime_policy
         injection = (
             f"import runpy\n"

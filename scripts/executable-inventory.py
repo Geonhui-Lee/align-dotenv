@@ -5,6 +5,7 @@ import json
 import platform
 import subprocess
 import sys
+import sysconfig
 from pathlib import Path
 
 
@@ -61,6 +62,8 @@ def record_analysis(analysis, output, policy):
     report = dict(platform=platform.platform(), python=sys.version, policy=policy,
                   openssl=ssl.OPENSSL_VERSION, zlib=zlib.ZLIB_RUNTIME_VERSION,
                   libmpdec=_decimal.__libmpdec_version__, binaries=rows,
+                  build_config={key: sysconfig.get_config_var(key) for key in
+                                ("CONFIG_ARGS", "WITH_MIMALLOC", "Py_GIL_DISABLED", "HAVE_GETADDRINFO")},
                   scripts=list(analysis.scripts), pure=list(analysis.pure))
     output = Path(output)
     output.mkdir(parents=True, exist_ok=True)
